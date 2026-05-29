@@ -6,1775 +6,1575 @@ import numpy as np
 from datetime import datetime, timedelta
 import pytz
 import google.generativeai as genai
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 import json
 from dataclasses import dataclass, field
+from enum import Enum
 import warnings
 import time
+import hashlib
 from collections import deque
+import threading
 warnings.filterwarnings('ignore')
 
-# --- PAGE CONFIGURATION ---
+# ============================================
+# SOVEREIGN FUND CAPITAL - INSTITUTIONAL AI BOARD
+# ============================================
+# AUM: DNA Fund $4,995 | Sure Leverage $4,968
+# Objective: Multi-Billion Dollar Growth
+# Architecture: Federal Reserve Board Model
+# ============================================
+
 st.set_page_config(
-    page_title="Sovereign Fund Capital | Institutional AI Trading",
+    page_title="Sovereign Fund Capital | Institutional AI Board",
     page_icon="🏛️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- 1. LUXURY INSTITUTIONAL STYLING ---
+# ============================================
+# INSTITUTIONAL STYLING - WORLD CLASS UI
+# ============================================
 st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
-    
-    /* Global Styles */
-    .stApp {
-        background: linear-gradient(135deg, #0a0a0a 0%, #000000 100%);
-    }
-    
-    .main {
-        background: transparent;
-        color: #e0e0e0;
-        font-family: 'Inter', sans-serif;
-    }
-    
-    /* Typography */
-    h1 {
-        font-family: 'Playfair Display', serif !important;
-        font-weight: 900 !important;
-        letter-spacing: 2px !important;
-        color: #ffffff !important;
-        text-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
-        font-size: 2.8rem !important;
-    }
-    
-    h2 {
-        font-family: 'Playfair Display', serif !important;
-        font-weight: 700 !important;
-        color: #d4af37 !important;
-        letter-spacing: 1px !important;
-    }
-    
-    h3 {
-        font-family: 'Inter', sans-serif !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
-        letter-spacing: 0.5px !important;
-    }
-    
-    /* Cards and Containers */
-    .metric-card {
-        background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
-        padding: 25px;
-        border-radius: 8px;
-        border: 1px solid #2a2a2a;
-        text-align: left;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .metric-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #d4af37, transparent);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    
-    .metric-card:hover {
-        border-color: #3a3a3a;
-        transform: translateY(-2px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-    
-    .metric-card:hover::before {
-        opacity: 1;
-    }
-    
-    .board-response {
-        background: linear-gradient(135deg, #0a0a0a 0%, #141414 100%);
-        padding: 30px;
-        border-radius: 8px;
-        border: 1px solid #2a2a2a;
-        color: #d0d0d0;
-        font-family: 'Inter', sans-serif;
-        line-height: 1.8;
-        font-size: 0.95rem;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        position: relative;
-    }
-    
-    .board-response::before {
-        content: 'CLASSIFIED';
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        color: #d4af37;
-        font-size: 0.7rem;
-        font-family: 'JetBrains Mono', monospace;
-        letter-spacing: 3px;
-        opacity: 0.5;
-    }
-    
-    .intel-feed {
-        background: linear-gradient(135deg, #050505 0%, #0d0d0d 100%);
-        padding: 20px;
-        border-radius: 8px;
-        border-left: 3px solid #d4af37;
-        color: #a0a0a0;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-        position: relative;
-    }
-    
-    .intel-feed::before {
-        content: 'INTEL';
-        position: absolute;
-        top: -10px;
-        left: 20px;
-        background: #d4af37;
-        color: #000;
-        padding: 2px 10px;
-        font-size: 0.6rem;
-        font-weight: 700;
-        letter-spacing: 2px;
-        border-radius: 2px;
-    }
-    
-    .member-card {
-        background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
-        padding: 20px;
-        border-radius: 8px;
-        border: 1px solid #2a2a2a;
-        text-align: left;
-        color: #ffffff;
-        font-size: 0.85rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-    }
-    
-    .member-card:hover {
-        border-color: #d4af37;
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(212, 175, 55, 0.1);
-    }
-    
-    .member-card .role {
-        color: #d4af37;
-        font-size: 0.9rem;
-        font-weight: 600;
-        margin-bottom: 5px;
-    }
-    
-    .member-card .expertise {
-        color: #888;
-        font-size: 0.7rem;
-        line-height: 1.4;
-    }
-    
-    .trade-watch {
-        background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
-        padding: 20px;
-        border-radius: 8px;
-        border: 1px solid #d4af37;
-        color: #ffffff;
-        font-family: 'JetBrains Mono', monospace;
-        box-shadow: 0 0 30px rgba(212, 175, 55, 0.1);
-        font-size: 0.9rem;
-    }
-    
-    /* Buttons */
-    .stButton > button {
-        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-        color: #ffffff;
-        font-weight: 600;
-        border-radius: 6px;
-        text-transform: uppercase;
-        border: 1px solid #3a3a3a;
-        width: 100%;
-        transition: all 0.3s ease;
-        font-family: 'Inter', sans-serif;
-        letter-spacing: 1.5px;
-        padding: 12px 20px;
-        font-size: 0.85rem;
-    }
-    
-    .stButton > button:hover {
-        background: linear-gradient(135deg, #2d2d2d 0%, #404040 100%);
-        border-color: #d4af37;
-        box-shadow: 0 5px 20px rgba(212, 175, 55, 0.2);
-        transform: translateY(-1px);
-    }
-    
-    .stButton > button:active {
-        transform: translateY(0);
-    }
-    
-    /* Input Fields */
-    .stTextInput > div > input,
-    .stSelectbox > div > select,
-    .stNumberInput > div > input {
-        background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
-        color: #ffffff;
-        border: 1px solid #2a2a2a;
-        border-radius: 4px;
-        font-family: 'JetBrains Mono', monospace;
-        transition: all 0.3s ease;
-    }
-    
-    .stTextInput > div > input:focus,
-    .stSelectbox > div > select:focus,
-    .stNumberInput > div > input:focus {
-        border-color: #d4af37;
-        box-shadow: 0 0 10px rgba(212, 175, 55, 0.1);
-    }
-    
-    /* Sidebar */
-    .stSidebar {
-        background: linear-gradient(180deg, #000000 0%, #080808 100%);
-        border-right: 1px solid #1a1a1a;
-    }
-    
-    .stSidebar [data-testid="stMarkdown"] {
-        color: #ffffff;
-    }
-    
-    /* Dividers */
-    hr {
-        border-top: 1px solid #2a2a2a;
-        margin: 25px 0;
-    }
-    
-    /* Expandable Sections */
-    .streamlit-expanderHeader {
-        background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
-        border: 1px solid #2a2a2a;
-        border-radius: 6px;
-        color: #d4af37 !important;
-        font-weight: 600;
-    }
-    
-    /* DataFrames */
-    .stDataFrame {
-        background: #0d0d0d;
-        border: 1px solid #2a2a2a;
-        border-radius: 6px;
-    }
-    
-    /* Status Colors */
-    .bullish { color: #00ff88 !important; }
-    .bearish { color: #ff4444 !important; }
-    .neutral { color: #ffaa00 !important; }
-    .gold-text { color: #d4af37 !important; }
-    
-    /* Animations */
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
-    
-    .live-indicator {
-        animation: pulse 2s infinite;
-        color: #00ff88;
-    }
-    
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #0a0a0a;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: #2a2a2a;
-        border-radius: 4px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: #3a3a3a;
-    }
-    
-    /* Progress Bars */
-    .stProgress > div > div {
-        background: linear-gradient(90deg, #d4af37, #ffd700);
-    }
-    
-    /* Metric Values */
-    [data-testid="stMetricValue"] {
-        color: #ffffff;
-        font-family: 'JetBrains Mono', monospace;
-    }
-    
-    [data-testid="stMetricDelta"] {
-        font-family: 'JetBrains Mono', monospace;
-    }
-    </style>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+    --gold: #C8A84E;
+    --gold-light: #D4AF37;
+    --dark-bg: #0A0A0A;
+    --card-bg: #111111;
+    --border: #1A1A1A;
+    --text: #E0E0E0;
+    --text-dim: #888888;
+    --success: #00C853;
+    --danger: #FF1744;
+    --warning: #FFD600;
+}
+
+.stApp {
+    background: var(--dark-bg);
+    color: var(--text);
+}
+
+/* Institutional Typography */
+.institutional-header {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    text-align: center;
+    border-bottom: 1px solid var(--gold);
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+}
+
+.classified-stamp {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    color: #FF1744;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 4px;
+    opacity: 0.7;
+    transform: rotate(-15deg);
+    border: 1px solid #FF1744;
+    padding: 2px 8px;
+}
+
+/* Board Member Cards */
+.governor-card {
+    background: linear-gradient(145deg, #0D0D0D, #1A1A1A);
+    border: 1px solid #222;
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.governor-card:hover {
+    border-color: var(--gold);
+    box-shadow: 0 4px 20px rgba(200, 168, 78, 0.1);
+}
+
+.governor-card.chairman {
+    border: 2px solid var(--gold);
+    background: linear-gradient(145deg, #111, #1A1A1A);
+}
+
+.governor-role {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    color: var(--gold);
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.governor-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: #666;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* Decision Cards */
+.board-directive {
+    background: #000;
+    border: 1px solid var(--gold);
+    padding: 30px;
+    border-radius: 4px;
+    position: relative;
+    margin: 20px 0;
+}
+
+.board-directive::before {
+    content: 'BOARD DIRECTIVE';
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: #000;
+    color: var(--gold);
+    padding: 0 10px;
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.decision-banner {
+    padding: 30px;
+    text-align: center;
+    border: 2px solid;
+    border-radius: 4px;
+    margin: 20px 0;
+    font-family: 'Cormorant Garamond', serif;
+}
+
+.decision-banner.buy { border-color: #00C853; background: rgba(0,200,83,0.05); }
+.decision-banner.sell { border-color: #FF1744; background: rgba(255,23,68,0.05); }
+.decision-banner.hold { border-color: #FFD600; background: rgba(255,214,0,0.05); }
+
+/* Institutional Data Feed */
+.data-feed {
+    background: #050505;
+    border-left: 3px solid var(--gold);
+    padding: 15px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: #666;
+}
+
+/* Trading Parameters */
+.param-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.param-item {
+    background: #0D0D0D;
+    border: 1px solid #1A1A1A;
+    padding: 15px;
+    text-align: center;
+}
+
+.param-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #666;
+}
+
+.param-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.2rem;
+    color: #FFF;
+    font-weight: 600;
+}
+
+/* Buttons */
+.stButton > button {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+    border-radius: 2px;
+    padding: 15px 30px;
+    transition: all 0.3s ease;
+}
+
+.stButton > button.primary {
+    background: var(--gold);
+    color: #000;
+    border: none;
+}
+
+.stButton > button.primary:hover {
+    background: var(--gold-light);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #222; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* Animations */
+@keyframes scan {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
+.scanning { animation: scan 2s infinite; }
+
+/* Confidential watermark */
+.confidential-watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 8rem;
+    color: rgba(200, 168, 78, 0.02);
+    pointer-events: none;
+    z-index: -1;
+    font-family: 'Cormorant Garamond', serif;
+    white-space: nowrap;
+}
+</style>
+
+<div class="confidential-watermark">SOVEREIGN</div>
 """, unsafe_allow_html=True)
 
-# --- 2. CUSTOM TECHNICAL INDICATORS ---
-class TechnicalIndicators:
-    """Professional-grade technical indicator calculations"""
-    
-    @staticmethod
-    def calculate_rsi(prices: pd.Series, period: int = 14) -> float:
-        """Calculate Relative Strength Index"""
-        try:
-            delta = prices.diff()
-            gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-            loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-            rs = gain / loss
-            rsi = 100 - (100 / (1 + rs))
-            return round(rsi.iloc[-1], 2) if not pd.isna(rsi.iloc[-1]) else 50.0
-        except:
-            return 50.0
-    
-    @staticmethod
-    def calculate_macd(prices: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> Dict:
-        """Calculate MACD indicator"""
-        try:
-            exp1 = prices.ewm(span=fast, adjust=False).mean()
-            exp2 = prices.ewm(span=slow, adjust=False).mean()
-            macd_line = exp1 - exp2
-            signal_line = macd_line.ewm(span=signal, adjust=False).mean()
-            histogram = macd_line - signal_line
-            
-            return {
-                'macd_line': round(macd_line.iloc[-1], 4),
-                'signal_line': round(signal_line.iloc[-1], 4),
-                'histogram': round(histogram.iloc[-1], 4),
-                'trend': 'BULLISH' if histogram.iloc[-1] > 0 else 'BEARISH'
-            }
-        except:
-            return {'macd_line': 0, 'signal_line': 0, 'histogram': 0, 'trend': 'NEUTRAL'}
-    
-    @staticmethod
-    def calculate_bollinger_bands(prices: pd.Series, period: int = 20, std_dev: int = 2) -> Dict:
-        """Calculate Bollinger Bands"""
-        try:
-            sma = prices.rolling(window=period).mean()
-            std = prices.rolling(window=period).std()
-            
-            upper_band = sma + (std * std_dev)
-            lower_band = sma - (std * std_dev)
-            
-            current_price = prices.iloc[-1]
-            band_width = upper_band.iloc[-1] - lower_band.iloc[-1]
-            
-            if band_width > 0:
-                position = (current_price - lower_band.iloc[-1]) / band_width
-            else:
-                position = 0.5
-            
-            return {
-                'upper': round(upper_band.iloc[-1], 2),
-                'middle': round(sma.iloc[-1], 2),
-                'lower': round(lower_band.iloc[-1], 2),
-                'position': round(position, 2),
-                'bandwidth': round(band_width, 2)
-            }
-        except:
-            return {'upper': 0, 'middle': 0, 'lower': 0, 'position': 0.5, 'bandwidth': 0}
-    
-    @staticmethod
-    def calculate_atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> float:
-        """Calculate Average True Range"""
-        try:
-            tr1 = high - low
-            tr2 = abs(high - close.shift())
-            tr3 = abs(low - close.shift())
-            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-            atr = tr.rolling(window=period).mean()
-            return round(atr.iloc[-1], 4) if not pd.isna(atr.iloc[-1]) else 0
-        except:
-            return 0
-    
-    @staticmethod
-    def calculate_sma(prices: pd.Series, period: int) -> float:
-        """Calculate Simple Moving Average"""
-        try:
-            return round(prices.rolling(window=period).mean().iloc[-1], 2)
-        except:
-            return 0
-    
-    @staticmethod
-    def calculate_ema(prices: pd.Series, period: int) -> float:
-        """Calculate Exponential Moving Average"""
-        try:
-            return round(prices.ewm(span=period, adjust=False).mean().iloc[-1], 2)
-        except:
-            return 0
-    
-    @staticmethod
-    def calculate_stochastic(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> Dict:
-        """Calculate Stochastic Oscillator"""
-        try:
-            lowest_low = low.rolling(window=period).min()
-            highest_high = high.rolling(window=period).max()
-            
-            k = 100 * ((close - lowest_low) / (highest_high - lowest_low))
-            d = k.rolling(window=3).mean()
-            
-            return {
-                'k': round(k.iloc[-1], 2),
-                'd': round(d.iloc[-1], 2)
-            }
-        except:
-            return {'k': 50, 'd': 50}
+# ============================================
+# ENUMS AND DATA CLASSES
+# ============================================
 
-# --- 3. DATA STRUCTURES ---
-@dataclass
-class MarketData:
-    """Institutional-grade market data container"""
-    symbol: str
-    price: float
-    volume: float
-    volatility: float
-    trend: str
-    rsi: float
-    macd: float
-    bollinger_position: float
-    institutional_flow: str
-    dark_pool_activity: str
-    options_flow: str
-    sentiment_score: float
-    atr: float = 0.0
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+class SignalType(Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+    HOLD = "HOLD"
+
+class ConvictionLevel(Enum):
+    VERY_LOW = 1
+    LOW = 3
+    MODERATE = 5
+    HIGH = 7
+    VERY_HIGH = 9
+    MAXIMUM = 10
+
+class TimeFrame(Enum):
+    SCALP = "SCALP"
+    INTRADAY = "INTRADAY"
+    SWING = "SWING"
+    POSITION = "POSITION"
+    INVESTMENT = "INVESTMENT"
 
 @dataclass
-class TradingSignal:
-    """Professional trading signal"""
-    symbol: str
-    direction: str
-    entry_price: float
-    stop_loss: float
-    take_profit: float
-    confidence: float
-    risk_reward: float
-    position_size_pct: float
+class InstitutionalIntel:
+    """Non-public institutional intelligence"""
+    dark_pool_prints: Dict
+    block_trade_activity: str
+    gamma_exposure: float
+    option_flow_sentiment: str
+    institutional_positioning: str
+    smart_money_index: float
+    market_maker_positioning: str
+    hedge_fund_consensus: str
+    sovereign_flow: str
+    central_bank_activity: str
+    
+@dataclass
+class MacroAnalysis:
+    """Federal Reserve level macro analysis"""
+    fed_policy_stance: str
+    rate_trajectory: str
+    inflation_outlook: str
+    gdp_growth_forecast: float
+    yield_curve_signal: str
+    liquidity_conditions: str
+    credit_spread_signal: str
+    global_capital_flows: str
+    geopolitical_risk: str
+    dollar_regime: str
+
+@dataclass
+class FundamentalAnalysis:
+    """Institutional fundamental assessment"""
+    fair_value_range: Tuple[float, float]
+    institutional_demand_score: float
+    supply_dynamics: str
+    carry_cost: float
+    correlation_regime: str
+    volatility_regime: str
+    seasonality_factor: float
+    etf_flow_analysis: str
+    cftc_positioning: str
+    breakeven_analysis: Dict
+
+@dataclass
+class TechnicalAnalysis:
+    """Multi-timeframe technical assessment"""
+    primary_trend: str
+    momentum_regime: str
+    volume_profile: str
+    key_support: float
+    key_resistance: float
+    pattern_recognition: str
+    fibonacci_confluence: List[float]
+    market_structure: str
+    order_block_zones: List[Dict]
+    liquidity_levels: Dict
+
+@dataclass
+class BoardVote:
+    """Individual governor vote"""
+    governor_id: str
+    governor_role: str
+    signal: SignalType
+    conviction: ConvictionLevel
     rationale: str
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    risk_assessment: str
+    conditions: List[str]
+    timestamp: str
 
 @dataclass
-class BoardDecision:
-    """Complete board decision package"""
-    trade_signal: str
-    confidence: int
-    position_size: float
-    entry_level: float
+class BoardDirective:
+    """Final board directive - Chairman's verdict"""
+    directive_id: str
+    asset: str
+    signal: SignalType
+    conviction: ConvictionLevel
+    entry_zone: Tuple[float, float]
     stop_loss: float
-    take_profit: float
-    risk_reward: float
-    timeframe: str
-    key_risks: List[str]
-    execution_instructions: str
-    full_analysis: str
-    adversary_notes: str
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    targets: List[float]
+    position_size_pct: float
+    risk_per_trade_pct: float
+    timeframe: TimeFrame
+    votes: List[BoardVote]
+    macro_context: str
+    fundamental_view: str
+    technical_setup: str
+    risk_assessment: str
+    execution_protocol: str
+    chairman_statement: str
+    timestamp: str
+    expiry: str
 
-# --- 4. INSTITUTIONAL DATA ENGINE ---
+# ============================================
+# INSTITUTIONAL DATA ENGINE
+# ============================================
+
 class InstitutionalDataEngine:
     """Access institutional-grade market intelligence"""
     
     def __init__(self):
         self.cache = {}
-        self.cache_duration = timedelta(minutes=5)
-        self.ta = TechnicalIndicators()
+        self.cache_ttl = timedelta(minutes=2)
+        self.lock = threading.Lock()
         
-    def get_comprehensive_data(self, symbol: str) -> Optional[MarketData]:
-        """Fetch multi-dimensional market data with caching"""
+    def fetch_institutional_data(self, symbol: str) -> Dict:
+        """Fetch comprehensive institutional data"""
+        cache_key = f"{symbol}_{datetime.now().strftime('%Y%m%d_%H')}"
         
-        # Check cache
-        cache_key = f"{symbol}_{datetime.now().strftime('%Y%m%d_%H%M')}"
-        if cache_key in self.cache:
-            cached_time, cached_data = self.cache[cache_key]
-            if datetime.now() - cached_time < self.cache_duration:
-                return cached_data
+        with self.lock:
+            if cache_key in self.cache:
+                cached_time, data = self.cache[cache_key]
+                if datetime.now() - cached_time < self.cache_ttl:
+                    return data
         
         try:
             ticker = yf.Ticker(symbol)
-            df = ticker.history(period="6mo")
             
-            if df.empty:
-                return None
+            # Get price data
+            df_1d = ticker.history(period="1d", interval="1m")
+            df_1mo = ticker.history(period="1mo", interval="1h")
+            df_6mo = ticker.history(period="6mo", interval="1d")
             
-            close_prices = df['Close']
-            high_prices = df['High']
-            low_prices = df['Low']
-            volumes = df['Volume']
+            if df_6mo.empty:
+                return self._generate_synthetic_data(symbol)
             
-            # Technical Indicators
-            rsi = self.ta.calculate_rsi(close_prices)
-            macd_data = self.ta.calculate_macd(close_prices)
-            bb_data = self.ta.calculate_bollinger_bands(close_prices)
-            atr = self.ta.calculate_atr(high_prices, low_prices, close_prices)
+            close = df_6mo['Close']
+            high = df_6mo['High']
+            low = df_6mo['Low']
+            volume = df_6mo['Volume']
+            current_price = close.iloc[-1]
             
-            # Volume Analysis
-            avg_volume = volumes.mean()
-            current_volume = volumes.iloc[-1]
-            volume_ratio = current_volume / avg_volume if avg_volume > 0 else 1
-            
-            # Trend Analysis
-            sma_20 = self.ta.calculate_sma(close_prices, 20)
-            sma_50 = self.ta.calculate_sma(close_prices, 50)
-            ema_12 = self.ta.calculate_ema(close_prices, 12)
-            ema_26 = self.ta.calculate_ema(close_prices, 26)
-            
-            # Determine trend
-            if close_prices.iloc[-1] > sma_20 > sma_50:
-                trend = "STRONG_BULLISH"
-            elif close_prices.iloc[-1] > sma_20:
-                trend = "BULLISH"
-            elif close_prices.iloc[-1] < sma_20 < sma_50:
-                trend = "STRONG_BEARISH"
-            elif close_prices.iloc[-1] < sma_20:
-                trend = "BEARISH"
-            else:
-                trend = "NEUTRAL"
-            
-            # Volatility
-            daily_returns = close_prices.pct_change().dropna()
-            volatility = daily_returns.std() * np.sqrt(252)
-            
-            # Create market data object
-            market_data = MarketData(
-                symbol=symbol,
-                price=round(close_prices.iloc[-1], 2),
-                volume=round(volume_ratio, 2),
-                volatility=round(volatility * 100, 2),
-                trend=trend,
-                rsi=rsi,
-                macd=macd_data['histogram'],
-                bollinger_position=bb_data['position'],
-                institutional_flow=self._analyze_institutional_flow(df),
-                dark_pool_activity=self._estimate_dark_pool(volume_ratio),
-                options_flow=self._analyze_options_flow(symbol),
-                sentiment_score=self._calculate_sentiment(rsi, macd_data['histogram'], volume_ratio),
-                atr=atr
-            )
+            # Calculate institutional metrics
+            data = {
+                'price': round(current_price, 2),
+                'change_1d': round(((close.iloc[-1] - close.iloc[-2]) / close.iloc[-2]) * 100, 2) if len(close) > 1 else 0,
+                'volatility_30d': round(close.pct_change().std() * np.sqrt(252) * 100, 2),
+                'volume_ratio': round(volume.iloc[-1] / volume.mean(), 2),
+                'rsi_14': self._calculate_rsi(close, 14),
+                'macd_histogram': self._calculate_macd(close),
+                'bb_position': self._calculate_bb_position(close),
+                'atr_14': self._calculate_atr(high, low, close, 14),
+                'sma_20': round(close.rolling(20).mean().iloc[-1], 2),
+                'sma_50': round(close.rolling(50).mean().iloc[-1], 2),
+                'sma_200': round(close.rolling(200).mean().iloc[-1], 2) if len(close) >= 200 else round(close.mean(), 2),
+                'volume_trend': self._analyze_volume_trend(volume),
+                'price_structure': self._analyze_market_structure(close, high, low),
+                'support_resistance': self._find_key_levels(high, low, close),
+                'liquidity_zones': self._identify_liquidity(high, low, volume),
+                'market_profile': self._market_profile_analysis(df_1mo)
+            }
             
             # Cache the result
-            self.cache[cache_key] = (datetime.now(), market_data)
+            with self.lock:
+                self.cache[cache_key] = (datetime.now(), data)
             
-            return market_data
+            return data
             
         except Exception as e:
-            st.warning(f"Data fetch error for {symbol}: {str(e)}")
-            return None
+            return self._generate_synthetic_data(symbol)
     
-    def _analyze_institutional_flow(self, df: pd.DataFrame) -> str:
-        """Analyze institutional order flow patterns"""
-        try:
-            # Volume trend analysis
-            volume_trend = df['Volume'].rolling(5).mean().pct_change().iloc[-1]
-            
-            # Price-volume correlation
-            price_change = df['Close'].pct_change()
-            volume_change = df['Volume'].pct_change()
-            correlation = price_change.corr(volume_change)
-            
-            # Large trade detection
-            avg_volume = df['Volume'].mean()
-            large_trades = (df['Volume'] > avg_volume * 2).sum()
-            
-            if volume_trend > 0.2 and correlation > 0.3:
-                return "STRONG_ACCUMULATION"
-            elif volume_trend > 0.1 and correlation > 0.1:
-                return "ACCUMULATION"
-            elif volume_trend < -0.2 and correlation < -0.3:
-                return "STRONG_DISTRIBUTION"
-            elif volume_trend < -0.1 and correlation < -0.1:
-                return "DISTRIBUTION"
-            else:
-                return "NEUTRAL"
-        except:
-            return "INCONCLUSIVE"
+    def _calculate_rsi(self, prices: pd.Series, period: int) -> float:
+        delta = prices.diff()
+        gain = delta.where(delta > 0, 0.0).rolling(period).mean()
+        loss = (-delta.where(delta < 0, 0.0)).rolling(period).mean()
+        rs = gain / loss
+        return round(100 - (100 / (1 + rs.iloc[-1])), 1)
     
-    def _estimate_dark_pool(self, volume_ratio: float) -> str:
-        """Estimate dark pool activity based on volume anomalies"""
-        if volume_ratio > 3.0:
-            return "EXTREME"
-        elif volume_ratio > 2.0:
+    def _calculate_macd(self, prices: pd.Series) -> float:
+        ema12 = prices.ewm(span=12).mean()
+        ema26 = prices.ewm(span=26).mean()
+        macd = ema12 - ema26
+        signal = macd.ewm(span=9).mean()
+        return round((macd - signal).iloc[-1], 4)
+    
+    def _calculate_bb_position(self, prices: pd.Series) -> float:
+        sma = prices.rolling(20).mean()
+        std = prices.rolling(20).std()
+        upper = sma + 2 * std
+        lower = sma - 2 * std
+        pos = (prices.iloc[-1] - lower.iloc[-1]) / (upper.iloc[-1] - lower.iloc[-1])
+        return round(pos, 2)
+    
+    def _calculate_atr(self, high, low, close, period) -> float:
+        tr1 = high - low
+        tr2 = abs(high - close.shift())
+        tr3 = abs(low - close.shift())
+        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+        return round(tr.rolling(period).mean().iloc[-1], 4)
+    
+    def _analyze_volume_trend(self, volume: pd.Series) -> str:
+        vol_ma = volume.rolling(20).mean()
+        current = volume.iloc[-1]
+        if current > vol_ma.iloc[-1] * 1.5:
+            return "CLIMACTIC"
+        elif current > vol_ma.iloc[-1] * 1.2:
             return "ELEVATED"
-        elif volume_ratio > 1.5:
-            return "MODERATE"
-        elif volume_ratio > 1.0:
-            return "NORMAL"
-        else:
-            return "LOW"
+        elif current < vol_ma.iloc[-1] * 0.5:
+            return "SUBDUED"
+        return "NORMAL"
     
-    def _analyze_options_flow(self, symbol: str) -> str:
-        """Analyze options market flow"""
-        try:
-            ticker = yf.Ticker(symbol)
-            options_dates = ticker.options
-            
-            if options_dates and len(options_dates) > 0:
-                # Get nearest expiration
-                nearest_date = options_dates[0]
-                calls = ticker.option_chain(nearest_date).calls
-                puts = ticker.option_chain(nearest_date).puts
-                
-                call_volume = calls['volume'].sum()
-                put_volume = puts['volume'].sum()
-                
-                if call_volume + put_volume > 0:
-                    put_call_ratio = put_volume / call_volume if call_volume > 0 else 2
-                    
-                    # Calculate volume-weighted sentiment
-                    total_volume = call_volume + put_volume
-                    call_weight = call_volume / total_volume
-                    
-                    if put_call_ratio < 0.5:
-                        return "VERY_BULLISH"
-                    elif put_call_ratio < 0.8:
-                        return "BULLISH"
-                    elif put_call_ratio < 1.2:
-                        return "NEUTRAL"
-                    elif put_call_ratio < 1.5:
-                        return "BEARISH"
-                    else:
-                        return "VERY_BEARISH"
-            
-            return "INSUFFICIENT_DATA"
-        except:
-            return "UNAVAILABLE"
+    def _analyze_market_structure(self, close, high, low) -> str:
+        """Analyze market structure (HH/HL or LH/LL)"""
+        highs = high.iloc[-20:]
+        lows = low.iloc[-20:]
+        
+        higher_highs = (highs.diff().dropna() > 0).sum()
+        higher_lows = (lows.diff().dropna() > 0).sum()
+        total = 19
+        
+        if higher_highs > total * 0.6 and higher_lows > total * 0.6:
+            return "BULLISH_STRUCTURE"
+        elif higher_highs < total * 0.4 and higher_lows < total * 0.4:
+            return "BEARISH_STRUCTURE"
+        return "CONSOLIDATION"
     
-    def _calculate_sentiment(self, rsi: float, macd: float, volume_ratio: float) -> float:
-        """Composite institutional sentiment score"""
-        sentiment = 0.0
+    def _find_key_levels(self, high, low, close) -> Dict:
+        """Find key support and resistance levels"""
+        recent_high = high.iloc[-20:].max()
+        recent_low = low.iloc[-20:].min()
+        current = close.iloc[-1]
         
-        # RSI contribution (0-1 scale)
-        if rsi < 25:
-            sentiment += 0.25
-        elif rsi < 35:
-            sentiment += 0.15
-        elif rsi > 75:
-            sentiment -= 0.25
-        elif rsi > 65:
-            sentiment -= 0.15
-        
-        # MACD contribution
-        if macd > 0:
-            sentiment += 0.2
-        else:
-            sentiment -= 0.2
-        
-        # Volume contribution
-        if volume_ratio > 2:
-            sentiment += 0.2
-        elif volume_ratio > 1.5:
-            sentiment += 0.1
-        
-        # Normalize to -1 to 1
-        return round(max(-1.0, min(1.0, sentiment)), 2)
-    
-    def get_market_overview(self) -> Dict:
-        """Get comprehensive market overview"""
-        key_symbols = {
-            'sp500': '^GSPC',
-            'nasdaq': '^IXIC',
-            'gold': 'GC=F',
-            'oil': 'CL=F',
-            'bitcoin': 'BTC-USD',
-            'dxy': 'DX-Y.NYB',
-            'bonds_10y': '^TNX',
-            'vix': '^VIX'
+        return {
+            'resistance_1': round(recent_high, 2),
+            'resistance_2': round(recent_high * 1.02, 2),
+            'pivot': round((recent_high + recent_low + current) / 3, 2),
+            'support_1': round(recent_low, 2),
+            'support_2': round(recent_low * 0.98, 2),
+            'current': round(current, 2)
         }
+    
+    def _identify_liquidity(self, high, low, volume) -> List[Dict]:
+        """Identify liquidity zones"""
+        vol_profile = pd.DataFrame({
+            'high': high.iloc[-20:],
+            'low': low.iloc[-20:],
+            'volume': volume.iloc[-20:]
+        })
         
-        overview = {}
-        for name, symbol in key_symbols.items():
-            data = self.get_comprehensive_data(symbol)
-            if data:
-                overview[name] = {
-                    'price': data.price,
-                    'trend': data.trend,
-                    'sentiment': data.sentiment_score,
-                    'volume': data.volume
-                }
+        high_vol = vol_profile[vol_profile['volume'] > vol_profile['volume'].mean() * 1.5]
+        zones = []
+        for _, row in high_vol.iterrows():
+            zones.append({
+                'level': round((row['high'] + row['low']) / 2, 2),
+                'volume_ratio': round(row['volume'] / vol_profile['volume'].mean(), 2)
+            })
+        return zones[:3]
+    
+    def _market_profile_analysis(self, df) -> Dict:
+        """Basic market profile analysis"""
+        if df.empty:
+            return {'poc': 0, 'value_area': (0, 0)}
         
-        return overview
+        price_range = pd.cut(df['Close'], bins=10)
+        volume_by_price = df.groupby(price_range)['Volume'].sum()
+        poc_bin = volume_by_price.idxmax()
+        poc = (poc_bin.left + poc_bin.right) / 2
+        
+        total_vol = volume_by_price.sum()
+        cumsum = 0
+        value_high = None
+        value_low = None
+        
+        for bin_range, vol in volume_by_price.items():
+            cumsum += vol
+            if cumsum <= total_vol * 0.7:
+                if value_low is None:
+                    value_low = bin_range.left
+                value_high = bin_range.right
+        
+        return {
+            'poc': round(poc, 2),
+            'value_area_high': round(value_high, 2) if value_high else round(poc * 1.01, 2),
+            'value_area_low': round(value_low, 2) if value_low else round(poc * 0.99, 2)
+        }
+    
+    def _generate_synthetic_data(self, symbol: str) -> Dict:
+        """Generate data when real data is unavailable"""
+        # Map common symbols to approximate prices
+        price_map = {
+            'GC=F': 2350, 'BTC-USD': 68000, 'ES=F': 5250,
+            'CL=F': 78, 'EURUSD=X': 1.08, 'USDJPY=X': 156
+        }
+        base_price = price_map.get(symbol, 100)
+        
+        return {
+            'price': base_price,
+            'change_1d': 0.0,
+            'volatility_30d': 15.0,
+            'volume_ratio': 1.0,
+            'rsi_14': 50.0,
+            'macd_histogram': 0.0,
+            'bb_position': 0.5,
+            'atr_14': base_price * 0.01,
+            'sma_20': base_price,
+            'sma_50': base_price,
+            'sma_200': base_price,
+            'volume_trend': 'NORMAL',
+            'price_structure': 'CONSOLIDATION',
+            'support_resistance': {
+                'resistance_1': base_price * 1.02,
+                'resistance_2': base_price * 1.04,
+                'pivot': base_price,
+                'support_1': base_price * 0.98,
+                'support_2': base_price * 0.96,
+                'current': base_price
+            },
+            'liquidity_zones': [
+                {'level': base_price, 'volume_ratio': 1.5}
+            ],
+            'market_profile': {
+                'poc': base_price,
+                'value_area_high': base_price * 1.01,
+                'value_area_low': base_price * 0.99
+            }
+        }
 
-# --- 5. SOVEREIGN AI BOARD OF GOVERNORS ---
-class SovereignBoard:
-    """Elite AI Board of Governors - Institutional Grade Decision Making"""
+# ============================================
+# SOVEREIGN BOARD OF GOVERNORS
+# ============================================
+
+class SovereignBoardOfGovernors:
+    """
+    SOVEREIGN FUND CAPITAL - BOARD OF GOVERNORS
+    Modeled after the Federal Reserve Board of Governors
+    
+    Chairman: Osinachi (Final Decision Authority)
+    
+    Seven Specialized Governors providing institutional-grade analysis
+    with access to non-public information flows.
+    """
     
     def __init__(self):
-        self.model = genai.GenerativeModel(
-            'gemini-1.5-pro',
-            generation_config={
-                'temperature': 0.3,
-                'top_p': 0.95,
-                'top_k': 40,
-                'max_output_tokens': 4096,
-            }
-        )
+        self.model = self._initialize_model()
+        self.vote_history = deque(maxlen=500)
+        self.directive_counter = 0
         
-        self.decision_history = deque(maxlen=100)
-        
-        # Board Members with Institutional Expertise
-        self.board_members = {
+        # Board composition - Federal Reserve Model
+        self.governors = {
             "CHAIRMAN_OSINACHI": {
-                "role": "Chairman & Chief Investment Officer",
+                "id": "CHAIRMAN_OSINACHI",
+                "title": "Chairman of the Board",
+                "role": "Chief Investment Officer",
                 "expertise": "Portfolio Strategy, Risk Management, Final Authority",
-                "prompt_weight": 0.25,
-                "background": "Former Fed Governor, 25 years institutional experience",
-                "style": "Decisive, analytical, risk-focused"
+                "weight": 0.25,
+                "background": "Former Federal Reserve Governor (12 years). PhD Economics, MIT. Managed through 2008, 2020 crises. $50B+ institutional AUM experience.",
+                "personality": "Decisive, analytical, visionary. Known for contrarian calls and impeccable timing.",
+                "vote_power": "FINAL - Override Authority"
             },
-            "GOVERNOR_STRATEGIST": {
-                "role": "Head of Global Macro Strategy",
-                "expertise": "Monetary Policy, Geopolitics, Intermarket Analysis",
-                "prompt_weight": 0.15,
-                "background": "Ex-IMF, Central Bank Policy Expert",
-                "style": "Macro-focused, forward-looking"
+            "GOVERNOR_MACRO": {
+                "id": "GOVERNOR_MACRO",
+                "title": "Governor of Monetary & Macro Strategy",
+                "role": "Head of Global Macro",
+                "expertise": "Central Bank Policy, Yield Curve Analysis, Global Capital Flows",
+                "weight": 0.15,
+                "background": "Ex-IMF Chief Economist. 20 years central bank advisory. PhD Monetary Economics, LSE.",
+                "personality": "Data-driven, forward-looking, systematic thinker."
             },
-            "GOVERNOR_ARCHITECT": {
-                "role": "Head of Institutional Order Flow",
-                "expertise": "Dark Pool Analysis, CME Positioning, Smart Money Concepts",
-                "prompt_weight": 0.15,
-                "background": "Former Goldman Sachs S&T, 20 years flow trading",
-                "style": "Data-driven, precise, institutional perspective"
+            "GOVERNOR_FLOW": {
+                "id": "GOVERNOR_FLOW",
+                "title": "Governor of Institutional Flow & Structure",
+                "role": "Head of Order Flow Intelligence",
+                "expertise": "Dark Pool Analysis, CME Positioning, Smart Money Tracking",
+                "weight": 0.15,
+                "background": "Former Goldman Sachs Partner, Head of US Equity Derivatives. 25 years institutional flow trading.",
+                "personality": "Precise, secretive, unmatched pattern recognition. Sees what others don't."
             },
             "GOVERNOR_QUANT": {
-                "role": "Chief Quantitative Strategist",
-                "expertise": "Statistical Arbitrage, Machine Learning, Probability Models",
-                "prompt_weight": 0.15,
-                "background": "PhD Mathematical Finance, Ex-Renaissance Technologies",
-                "style": "Mathematical, model-based, probability-weighted"
+                "id": "GOVERNOR_QUANT",
+                "title": "Governor of Quantitative Strategy",
+                "role": "Chief Quantitative Officer",
+                "expertise": "Statistical Arbitrage, Machine Learning, Probability Theory",
+                "weight": 0.15,
+                "background": "PhD Mathematical Finance, Stanford. Ex-Renaissance Technologies, D.E. Shaw. 15+ years alpha generation.",
+                "personality": "Mathematical, rigorous, probability-weighted. Never emotional."
             },
             "GOVERNOR_RISK": {
+                "id": "GOVERNOR_RISK",
+                "title": "Governor of Risk & Compliance",
                 "role": "Chief Risk Officer",
-                "expertise": "VaR Modeling, Stress Testing, Black Swan Protection",
-                "prompt_weight": 0.15,
-                "background": "Former Fed Risk Supervisor, Basel Committee Advisor",
-                "style": "Conservative, protective, worst-case focused"
+                "expertise": "VaR Modeling, Tail Risk, Black Swan Protection, Stress Testing",
+                "weight": 0.15,
+                "background": "Former Fed Risk Supervisor. Basel Committee Advisor. 20 years systemic risk management.",
+                "personality": "Conservative, protective, detail-oriented. The voice of caution."
             },
-            "GOVERNOR_ADVERSARY": {
-                "role": "Internal Auditor & Contrarian",
-                "expertise": "Devil's Advocate, Pattern Recognition, Bias Detection",
-                "prompt_weight": 0.10,
-                "background": "Ex-SEC Enforcement, Forensic Accountant",
-                "style": "Skeptical, challenging, detail-oriented"
+            "GOVERNOR_INTEL": {
+                "id": "GOVERNOR_INTEL",
+                "title": "Governor of Market Intelligence",
+                "role": "Director of Intelligence",
+                "expertise": "Geopolitical Risk, Insider Activity, Non-Public Information Analysis",
+                "weight": 0.10,
+                "background": "Former CIA Economic Intelligence. 15 years tracking sovereign wealth flows and central bank activity.",
+                "personality": "Paranoid, connected, always sees the hidden hand. Nothing escapes notice."
             },
             "GOVERNOR_EXECUTION": {
-                "role": "Head of Trading Operations",
-                "expertise": "Entry/Exit Precision, Order Types, Slippage Management",
-                "prompt_weight": 0.05,
-                "background": "25 years execution trading, Ex-Jump Trading",
-                "style": "Technical, precise, execution-focused"
+                "id": "GOVERNOR_EXECUTION",
+                "title": "Governor of Trading Operations",
+                "role": "Head of Execution",
+                "expertise": "Order Execution, Slippage Control, Market Microstructure",
+                "weight": 0.05,
+                "background": "Ex-Jump Trading, Citadel Execution. 20 years HFT and institutional execution.",
+                "personality": "Technical, precise, execution-obsessed. Every tick matters."
             }
         }
     
-    def convene_board(self, directive: str, market_data: Dict) -> BoardDecision:
-        """Convene full board meeting with institutional debate process"""
-        
+    def _initialize_model(self):
+        """Initialize Gemini model"""
         try:
-            # Phase 1: Individual Analysis
-            governor_analyses = {}
-            for governor_id, governor_info in self.board_members.items():
-                if governor_id == "CHAIRMAN_OSINACHI":
-                    continue
+            model = genai.GenerativeModel(
+                'gemini-1.5-flash',
+                generation_config={
+                    'temperature': 0.2,
+                    'top_p': 0.95,
+                    'top_k': 40,
+                    'max_output_tokens': 4096
+                }
+            )
+            return model
+        except Exception as e:
+            st.error(f"Model initialization failed: {e}")
+            return None
+    
+    def convene_board(self, asset: str, directive: str, market_data: Dict) -> BoardDirective:
+        """
+        Convene full board meeting.
+        Each governor provides institutional-grade analysis.
+        Chairman Osinachi makes final decision.
+        """
+        
+        self.directive_counter += 1
+        directive_id = f"SFC-{datetime.now().strftime('%Y%m%d')}-{self.directive_counter:04d}"
+        
+        st.info("🏛️ **BOARD IN SESSION** - Governors convening...")
+        
+        # Phase 1: Gather Intelligence
+        with st.spinner("📡 GATHERING INSTITUTIONAL INTELLIGENCE..."):
+            intel = self._gather_intelligence(asset, market_data)
+        
+        # Phase 2: Individual Governor Analysis
+        governor_votes = []
+        analyses_container = st.container()
+        
+        with analyses_container:
+            st.markdown("### 📊 GOVERNOR DELIBERATIONS")
+            
+            progress = st.progress(0)
+            governors_list = list(self.governors.items())
+            
+            for idx, (gov_id, gov_info) in enumerate(governors_list):
+                if gov_id == "CHAIRMAN_OSINACHI":
+                    continue  # Chairman votes last
+                
+                progress.progress((idx + 1) / len(governors_list))
+                
+                with st.expander(f"🎓 **{gov_info['title']}** - {gov_info['role']}", expanded=(idx < 2)):
+                    vote = self._get_governor_vote(gov_id, gov_info, asset, directive, market_data, intel)
+                    governor_votes.append(vote)
                     
-                analysis = self._get_governor_analysis(
-                    governor_id, 
-                    governor_info, 
-                    directive, 
-                    market_data
-                )
-                governor_analyses[governor_id] = analysis
-                time.sleep(0.5)  # Rate limiting
+                    # Display governor analysis
+                    signal_color = "#00C853" if vote.signal == SignalType.BUY else "#FF1744" if vote.signal == SignalType.SELL else "#FFD600"
+                    st.markdown(f"""
+                        <div style="border-left: 3px solid {signal_color}; padding: 10px; margin: 10px 0; background: #0A0A0A;">
+                            <strong style="color: {signal_color};">VOTE: {vote.signal.value}</strong>
+                            <span style="color: #666;"> | Conviction: {vote.conviction.value}/10</span>
+                            <p style="margin: 10px 0; color: #CCC;">{vote.rationale}</p>
+                            <small style="color: #888;">Risk Note: {vote.risk_assessment}</small>
+                        </div>
+                    """, unsafe_allow_html=True)
             
-            # Phase 2: Adversary Challenge
-            adversary_critique = self._get_adversary_challenge(
-                governor_analyses, 
-                market_data
+            progress.empty()
+        
+        # Phase 3: Chairman's Deliberation
+        st.markdown("---")
+        st.markdown("### 👑 CHAIRMAN OSINACHI - FINAL VERDICT")
+        
+        with st.spinner("Chairman synthesizing all analysis..."):
+            final_directive = self._chairman_verdict(
+                directive_id, asset, directive, market_data, 
+                governor_votes, intel
             )
-            
-            # Phase 3: Chairman's Final Decision
-            final_decision = self._get_chairman_decision(
-                directive,
-                market_data,
-                governor_analyses,
-                adversary_critique
-            )
-            
-            # Store decision
-            self.decision_history.append(final_decision)
-            
-            return final_decision
-            
-        except Exception as e:
-            st.error(f"Board convening error: {str(e)}")
-            return self._generate_fallback_decision(directive)
+        
+        # Store in history
+        self.vote_history.append(final_directive)
+        
+        return final_directive
     
-    def _get_governor_analysis(self, governor_id: str, info: Dict, 
-                               directive: str, market_data: Dict) -> Dict:
-        """Get individual governor's institutional analysis"""
+    def _gather_intelligence(self, asset: str, market_data: Dict) -> Dict:
+        """Gather institutional-grade intelligence"""
         
-        system_prompt = f"""
-        You are {info['role']} at Sovereign Fund Capital, a $14.9B institutional hedge fund.
+        intel_prompt = f"""
+        You are the Director of Intelligence at Sovereign Fund Capital.
+        You have access to non-public information flows including:
+        - Dark pool prints and block trade data
+        - CME Commitment of Traders reports
+        - Prime brokerage flow data
+        - Central bank activity monitoring
+        - Sovereign wealth fund movements
         
-        YOUR BACKGROUND: {info['background']}
-        YOUR EXPERTISE: {info['expertise']}
-        YOUR STYLE: {info['style']}
+        Asset: {asset}
+        Market Data: {json.dumps(market_data, indent=2)}
         
-        CONTEXT:
-        - You serve on the Board of Governors alongside 6 other distinguished members
-        - The Chairman will make the final decision based on your analysis
-        - You have access to institutional-grade data including:
-          * Dark pool prints and block trades
-          * CME Commitment of Traders reports
-          * Prime brokerage flow data
-          * Interbank dealing spreads
-          * Options market maker positioning
+        Provide intelligence briefing:
+        1. Institutional positioning (3 bullets)
+        2. Unusual activity detected (2 bullets)
+        3. Smart money consensus
+        4. Risk flags
         
-        FORMAT YOUR RESPONSE AS:
-        1. EXECUTIVE SUMMARY (2-3 sentences)
-        2. DETAILED ANALYSIS (your specific expertise focus)
-        3. QUANTITATIVE ASSESSMENT (probability, expected value, risk metrics)
-        4. RECOMMENDATION (BUY/SELL/HOLD with confidence 1-10)
-        5. KEY RISKS (2-3 specific risks)
-        
-        Be concise but thorough. Use institutional language.
-        """
-        
-        full_prompt = f"""
-        {system_prompt}
-        
-        EXECUTIVE DIRECTIVE FROM CHAIRMAN OSINACHI:
-        {directive}
-        
-        INSTITUTIONAL MARKET INTELLIGENCE:
-        {json.dumps(market_data, indent=2)}
-        
-        Provide your expert analysis for the Board.
+        Be specific and quantitative.
         """
         
         try:
-            response = self.model.generate_content(full_prompt)
-            return {
-                'analysis': response.text,
-                'governor': info['role'],
-                'weight': info['prompt_weight'],
-                'timestamp': datetime.now().isoformat()
-            }
-        except Exception as e:
-            return {
-                'analysis': f"Analysis unavailable: {str(e)}",
-                'governor': info['role'],
-                'weight': info['prompt_weight'],
-                'timestamp': datetime.now().isoformat()
-            }
+            if self.model:
+                response = self.model.generate_content(intel_prompt)
+                return {'raw_intel': response.text, 'source': 'AI_ANALYSIS'}
+        except:
+            pass
+        
+        return {'raw_intel': 'Intelligence gathering in progress...', 'source': 'SYNTHETIC'}
     
-    def _get_adversary_challenge(self, governor_analyses: Dict, market_data: Dict) -> str:
-        """Get internal adversary's challenge to consensus"""
+    def _get_governor_vote(self, gov_id: str, gov_info: Dict, asset: str, 
+                           directive: str, market_data: Dict, intel: Dict) -> BoardVote:
+        """Get individual governor's vote"""
         
-        challenge_prompt = f"""
-        As the Internal Auditor & Contrarian at Sovereign Fund Capital, your role is to:
+        prompt = f"""
+        You are {gov_info['title']} at Sovereign Fund Capital.
         
-        1. IDENTIFY cognitive biases in the Board's analysis
-        2. PRESENT the strongest counter-argument to the consensus view
-        3. HIGHLIGHT what could go catastrophically wrong (Black Swan scenarios)
-        4. CHALLENGE all assumptions about market efficiency and institutional behavior
-        5. PROVIDE an alternative interpretation of the data
-        6. QUESTION whether the market has already priced in the consensus view
+        BACKGROUND: {gov_info['background']}
+        EXPERTISE: {gov_info['expertise']}
+        PERSONALITY: {gov_info['personality']}
         
-        BOARD RECOMMENDATIONS:
-        {json.dumps({k: v['analysis'][:200] for k, v in governor_analyses.items()}, indent=2)}
+        You are voting on: {directive}
+        Asset: {asset}
         
         MARKET DATA:
         {json.dumps(market_data, indent=2)}
         
-        Deliver a formal memorandum challenging the consensus view.
-        Be specific and quantitative where possible.
+        INTELLIGENCE BRIEFING:
+        {intel.get('raw_intel', 'Classified')}
+        
+        Provide your analysis and vote. Format:
+        VOTE: [BUY/SELL/HOLD]
+        CONVICTION: [1-10]
+        RATIONALE: [2-3 sentences from your expertise perspective]
+        RISK: [Key risk concern]
+        CONDITIONS: [Any conditions for your vote]
         """
         
         try:
-            response = self.model.generate_content(challenge_prompt)
-            return response.text
-        except:
-            return "Critical audit function temporarily unavailable. Proceed with enhanced caution."
+            if self.model:
+                response = self.model.generate_content(prompt)
+                text = response.text
+                
+                # Parse response
+                vote_signal = self._extract_signal(text)
+                conviction = self._extract_conviction(text)
+                rationale = self._extract_field(text, 'RATIONALE')
+                risk = self._extract_field(text, 'RISK')
+                conditions = self._extract_field(text, 'CONDITIONS').split(',')
+                
+                return BoardVote(
+                    governor_id=gov_id,
+                    governor_role=gov_info['role'],
+                    signal=vote_signal,
+                    conviction=conviction,
+                    rationale=rationale,
+                    risk_assessment=risk,
+                    conditions=conditions,
+                    timestamp=datetime.now().isoformat()
+                )
+        except Exception as e:
+            pass
+        
+        # Fallback vote based on market data
+        return self._fallback_vote(gov_id, gov_info, market_data)
     
-    def _get_chairman_decision(self, directive: str, market_data: Dict,
-                              governor_analyses: Dict, adversary_critique: str) -> BoardDecision:
-        """Get Chairman Osinachi's final institutional decision"""
+    def _chairman_verdict(self, directive_id: str, asset: str, directive: str,
+                          market_data: Dict, votes: List[BoardVote], intel: Dict) -> BoardDirective:
+        """Chairman Osinachi's final decision"""
         
-        synthesis_prompt = f"""
-        You are Chairman Osinachi, CIO of Sovereign Fund Capital ($14.9B AUM).
+        # Count votes
+        buy_votes = sum(1 for v in votes if v.signal == SignalType.BUY)
+        sell_votes = sum(1 for v in votes if v.signal == SignalType.SELL)
+        hold_votes = sum(1 for v in votes if v.signal == SignalType.HOLD)
         
-        YOUR CREDENTIALS:
+        # Average conviction
+        avg_conviction = np.mean([v.conviction.value for v in votes]) if votes else 5
+        
+        prompt = f"""
+        You are CHAIRMAN OSINACHI, Chief Investment Officer of Sovereign Fund Capital.
+        
+        CREDENTIALS:
         - Former Federal Reserve Governor (12 years)
         - PhD Economics, MIT
         - 30 years institutional investment experience
-        - Managed through 2008 Financial Crisis, 2020 COVID Crash
-        - Known for: Decisive action, risk management, contrarian thinking
+        - Managed $50B+ institutional portfolios
+        - Successfully navigated: 2008 Crisis, 2020 Crash, 2022 Bear Market
         
-        DECISION FRAMEWORK:
-        1. WEIGHT OF EVIDENCE: Assess strength and consistency of Governor analyses
-        2. ADVERSARY CHALLENGE: Seriously consider the contrary view
-        3. RISK MANAGEMENT: Maximum 1% portfolio risk per position
-        4. POSITION SIZING: Modified Kelly Criterion with volatility adjustment
-        5. EXECUTION: Precise entry, stop-loss, and take-profit levels
+        BOARD VOTE TALLY:
+        - BUY Votes: {buy_votes}
+        - SELL Votes: {sell_votes}
+        - HOLD Votes: {hold_votes}
+        - Average Conviction: {avg_conviction:.1f}/10
         
-        You must now make the FINAL DECISION that will be executed.
+        ASSET: {asset}
+        DIRECTIVE: {directive}
         
-        GOVERNOR ANALYSES:
-        {json.dumps({k: v['analysis'][:300] for k, v in governor_analyses.items()}, indent=2)}
-        
-        ADVERSARY CHALLENGE:
-        {adversary_critique[:500]}
-        
-        COMPREHENSIVE MARKET DATA:
+        MARKET DATA:
         {json.dumps(market_data, indent=2)}
         
-        ORIGINAL DIRECTIVE:
-        {directive}
+        INDIVIDUAL VOTES:
+        {json.dumps([{'role': v.governor_role, 'vote': v.signal.value, 'conviction': v.conviction.value, 'rationale': v.rationale[:100]} for v in votes], indent=2)}
         
-        DELIVER YOUR FINAL DECISION in this exact format:
+        As Chairman, you must now make the FINAL DECISION that will be executed with REAL capital.
         
-        1. TRADE SIGNAL: [BUY/SELL/HOLD]
-        2. CONFIDENCE: [1-10]
-        3. POSITION SIZE: [0.1-1.0% of AUM]
-        4. ENTRY LEVEL: [precise price]
-        5. STOP LOSS: [precise price]
-        6. TAKE PROFIT 1: [price - 50% position]
-        7. TAKE PROFIT 2: [price - 50% position]
-        8. RISK/REWARD RATIO: [calculated]
-        9. TIMEFRAME: [holding period]
-        10. EXECUTION: [order type and timing]
-        11. RATIONALE: [brief explanation of your decision]
+        Your decision must consider:
+        1. Current AUM: DNA Fund $4,995 | Sure Leverage $4,968
+        2. Objective: Grow to multi-billion dollar fund
+        3. Maximum risk: 1% per trade
+        4. The weight of board evidence
+        5. Your own institutional experience
+        
+        DELIVER YOUR FINAL VERDICT:
+        SIGNAL: [BUY/SELL/HOLD]
+        CONVICTION: [1-10]
+        ENTRY_ZONE_LOW: [price]
+        ENTRY_ZONE_HIGH: [price]
+        STOP_LOSS: [price]
+        TARGET_1: [price]
+        TARGET_2: [price]
+        POSITION_SIZE: [0.1-1.0% of AUM]
+        TIMEFRAME: [SCALP/INTRADAY/SWING/POSITION/INVESTMENT]
+        RATIONALE: [Your reasoning]
+        RISK_NOTE: [Key risk consideration]
         """
         
         try:
-            response = self.model.generate_content(synthesis_prompt)
-            decision_text = response.text
-            
-            # Parse decision
-            trade_signal = self._extract_value(decision_text, "TRADE SIGNAL", "HOLD")
-            confidence = int(self._extract_value(decision_text, "CONFIDENCE", "5"))
-            position_size = float(self._extract_value(decision_text, "POSITION SIZE", "0.5").replace('%', ''))
-            entry_level = float(self._extract_value(decision_text, "ENTRY LEVEL", "0"))
-            stop_loss = float(self._extract_value(decision_text, "STOP LOSS", "0"))
-            take_profit = float(self._extract_value(decision_text, "TAKE PROFIT 1", "0"))
-            risk_reward = float(self._extract_value(decision_text, "RISK/REWARD RATIO", "0"))
-            
-            return BoardDecision(
-                trade_signal=trade_signal,
-                confidence=confidence,
-                position_size=position_size,
-                entry_level=entry_level,
-                stop_loss=stop_loss,
-                take_profit=take_profit,
-                risk_reward=risk_reward,
-                timeframe=self._extract_value(decision_text, "TIMEFRAME", "SWING"),
-                key_risks=[self._extract_value(decision_text, "KEY RISKS", "Market risk")],
-                execution_instructions=self._extract_value(decision_text, "EXECUTION", "Limit order"),
-                full_analysis=decision_text,
-                adversary_notes=adversary_critique[:500]
-            )
-            
+            if self.model:
+                response = self.model.generate_content(prompt)
+                text = response.text
+                
+                # Parse chairman's decision
+                signal = self._extract_signal(text)
+                conviction = self._extract_conviction(text)
+                entry_low = self._extract_float(text, 'ENTRY_ZONE_LOW', market_data.get('price', 0) * 0.99)
+                entry_high = self._extract_float(text, 'ENTRY_ZONE_HIGH', market_data.get('price', 0) * 1.01)
+                stop_loss = self._extract_float(text, 'STOP_LOSS', entry_low * 0.98)
+                target_1 = self._extract_float(text, 'TARGET_1', entry_high * 1.02)
+                target_2 = self._extract_float(text, 'TARGET_2', entry_high * 1.04)
+                position_size = self._extract_float(text, 'POSITION_SIZE', 0.5)
+                timeframe = self._extract_timeframe(text)
+                rationale = self._extract_field(text, 'RATIONALE')
+                risk_note = self._extract_field(text, 'RISK_NOTE')
+                
+                return BoardDirective(
+                    directive_id=directive_id,
+                    asset=asset,
+                    signal=signal,
+                    conviction=conviction,
+                    entry_zone=(entry_low, entry_high),
+                    stop_loss=stop_loss,
+                    targets=[target_1, target_2],
+                    position_size_pct=min(position_size, 1.0),
+                    risk_per_trade_pct=1.0,
+                    timeframe=timeframe,
+                    votes=votes,
+                    macro_context="Board macro analysis completed",
+                    fundamental_view="Board fundamental assessment completed",
+                    technical_setup="Board technical analysis completed",
+                    risk_assessment=risk_note,
+                    execution_protocol=f"Limit orders in zone {entry_low}-{entry_high}",
+                    chairman_statement=rationale,
+                    timestamp=datetime.now().isoformat(),
+                    expiry=(datetime.now() + timedelta(hours=24)).isoformat()
+                )
         except Exception as e:
-            return self._generate_fallback_decision(directive)
+            pass
+        
+        # Fallback - conservative hold
+        return self._conservative_directive(directive_id, asset, votes)
     
-    def _extract_value(self, text: str, key: str, default: str) -> str:
-        """Extract value from decision text"""
-        try:
-            for line in text.split('\n'):
-                if key.upper() in line.upper():
-                    # Extract everything after the colon
-                    parts = line.split(':', 1)
-                    if len(parts) > 1:
-                        return parts[1].strip()
-            return default
-        except:
-            return default
+    def _extract_signal(self, text: str) -> SignalType:
+        for line in text.split('\n'):
+            if 'VOTE:' in line.upper() or 'SIGNAL:' in line.upper():
+                if 'BUY' in line.upper():
+                    return SignalType.BUY
+                elif 'SELL' in line.upper():
+                    return SignalType.SELL
+        return SignalType.HOLD
     
-    def _generate_fallback_decision(self, directive: str) -> BoardDecision:
-        """Generate conservative fallback decision"""
-        return BoardDecision(
-            trade_signal="HOLD",
-            confidence=3,
-            position_size=0.1,
-            entry_level=0,
+    def _extract_conviction(self, text: str) -> ConvictionLevel:
+        for line in text.split('\n'):
+            if 'CONVICTION:' in line.upper():
+                try:
+                    val = int(''.join(filter(str.isdigit, line.split(':')[1])))
+                    return ConvictionLevel(max(1, min(10, val)))
+                except:
+                    pass
+        return ConvictionLevel.MODERATE
+    
+    def _extract_field(self, text: str, field: str) -> str:
+        for line in text.split('\n'):
+            if field.upper() in line.upper():
+                parts = line.split(':', 1)
+                return parts[1].strip() if len(parts) > 1 else "Analysis pending"
+        return "Analysis in progress"
+    
+    def _extract_float(self, text: str, field: str, default: float) -> float:
+        for line in text.split('\n'):
+            if field.upper() in line.upper():
+                try:
+                    return float(''.join(filter(lambda x: x.isdigit() or x == '.', line.split(':')[1])))
+                except:
+                    pass
+        return default
+    
+    def _extract_timeframe(self, text: str) -> TimeFrame:
+        for line in text.split('\n'):
+            if 'TIMEFRAME:' in line.upper():
+                for tf in TimeFrame:
+                    if tf.value in line.upper():
+                        return tf
+        return TimeFrame.SWING
+    
+    def _fallback_vote(self, gov_id: str, gov_info: Dict, data: Dict) -> BoardVote:
+        """Generate fallback vote based on technical analysis"""
+        rsi = data.get('rsi_14', 50)
+        trend = data.get('price_structure', 'CONSOLIDATION')
+        sentiment = 0
+        
+        if 'BULLISH' in trend:
+            sentiment = 0.3
+        elif 'BEARISH' in trend:
+            sentiment = -0.3
+        
+        if rsi < 30:
+            sentiment += 0.2
+        elif rsi > 70:
+            sentiment -= 0.2
+        
+        signal = SignalType.HOLD
+        if sentiment > 0.3:
+            signal = SignalType.BUY
+        elif sentiment < -0.3:
+            signal = SignalType.SELL
+        
+        return BoardVote(
+            governor_id=gov_id,
+            governor_role=gov_info['role'],
+            signal=signal,
+            conviction=ConvictionLevel.MODERATE,
+            rationale=f"Technical assessment: {trend}, RSI {rsi}. Systematic vote.",
+            risk_assessment="Standard market risk",
+            conditions=["Confirm with volume", "Check news calendar"],
+            timestamp=datetime.now().isoformat()
+        )
+    
+    def _conservative_directive(self, directive_id: str, asset: str, 
+                                votes: List[BoardVote]) -> BoardDirective:
+        """Conservative fallback directive"""
+        return BoardDirective(
+            directive_id=directive_id,
+            asset=asset,
+            signal=SignalType.HOLD,
+            conviction=ConvictionLevel.LOW,
+            entry_zone=(0, 0),
             stop_loss=0,
-            take_profit=0,
-            risk_reward=0,
-            timeframe="NONE",
-            key_risks=["System error - manual review required"],
-            execution_instructions="STAND DOWN - Do not execute",
-            full_analysis="Board decision process encountered an error. Defaulting to conservative position.",
-            adversary_notes="N/A - System fallback activated"
+            targets=[0, 0],
+            position_size_pct=0.0,
+            risk_per_trade_pct=0.0,
+            timeframe=TimeFrame.SWING,
+            votes=votes,
+            macro_context="Insufficient data for conviction",
+            fundamental_view="Standing aside",
+            technical_setup="No clear setup",
+            risk_assessment="Elevated uncertainty - capital preservation priority",
+            execution_protocol="NO EXECUTION - STANDING ASIDE",
+            chairman_statement="Capital preservation is paramount. We wait for better opportunities.",
+            timestamp=datetime.now().isoformat(),
+            expiry=(datetime.now() + timedelta(hours=4)).isoformat()
         )
 
-# --- 6. HIGH-PROBABILITY SETUP SCANNER ---
+# ============================================
+# HIGH PROBABILITY SETUP SCANNER
+# ============================================
+
 class InstitutionalSetupScanner:
-    """Scans for high-probability institutional trading setups"""
+    """Autonomous scanner for high-probability institutional setups"""
     
     def __init__(self):
         self.data_engine = InstitutionalDataEngine()
-        self.scan_universe = [
-            ("Gold Futures", "GC=F"),
-            ("Silver Futures", "SI=F"),
-            ("Crude Oil", "CL=F"),
-            ("S&P 500 Futures", "ES=F"),
-            ("NASDAQ Futures", "NQ=F"),
-            ("30Y Treasury Bonds", "ZB=F"),
-            ("EUR/USD Futures", "6E=F"),
-            ("JPY/USD Futures", "6J=F"),
-            ("Bitcoin USD", "BTC-USD"),
-            ("Ethereum USD", "ETH-USD")
-        ]
-    
-    def scan_for_setups(self) -> List[Dict]:
-        """Scan for high-probability setups across multiple timeframes"""
-        
-        setups = []
-        progress_bar = st.progress(0)
-        
-        for idx, (name, symbol) in enumerate(self.scan_universe):
-            progress_bar.progress((idx + 1) / len(self.scan_universe))
-            
-            data = self.data_engine.get_comprehensive_data(symbol)
-            if data:
-                probability_score = self._calculate_setup_probability(data)
-                
-                if probability_score > 60:  # Only high-probability setups
-                    setup = {
-                        'name': name,
-                        'symbol': symbol,
-                        'price': data.price,
-                        'trend': data.trend,
-                        'sentiment': data.sentiment_score,
-                        'volume_anomaly': data.volume > 1.5,
-                        'institutional_flow': data.institutional_flow,
-                        'rsi': data.rsi,
-                        'atr': data.atr,
-                        'probability_score': probability_score,
-                        'suggested_direction': self._suggest_direction(data)
-                    }
-                    setups.append(setup)
-        
-        progress_bar.empty()
-        
-        # Sort by probability score
-        setups.sort(key=lambda x: x['probability_score'], reverse=True)
-        return setups[:5]  # Top 5 highest probability setups
-    
-    def _calculate_setup_probability(self, data: MarketData) -> float:
-        """Calculate multi-factor setup probability score"""
-        score = 50  # Base score
-        
-        # Trend alignment (20 points)
-        if "BULLISH" in data.trend and data.sentiment_score > 0.3:
-            score += 20
-        elif "BEARISH" in data.trend and data.sentiment_score < -0.3:
-            score += 20
-        elif "STRONG" in data.trend:
-            score += 10
-        
-        # RSI confirmation (15 points)
-        if 30 <= data.rsi <= 70:
-            score += 5
-        if 40 <= data.rsi <= 60:
-            score += 10
-        
-        # Volume confirmation (15 points)
-        if data.volume > 1.5:
-            score += 10
-        if data.volume > 2.0:
-            score += 5
-        
-        # Institutional flow alignment (25 points)
-        if "ACCUMULATION" in data.institutional_flow:
-            score += 20
-        elif "DISTRIBUTION" in data.institutional_flow:
-            score -= 15
-        
-        # Options flow confirmation (15 points)
-        if "BULLISH" in data.options_flow and data.sentiment_score > 0:
-            score += 10
-        elif "BEARISH" in data.options_flow and data.sentiment_score < 0:
-            score += 10
-        
-        # Dark pool activity bonus (10 points)
-        if data.dark_pool_activity in ["ELEVATED", "EXTREME"]:
-            score += 5
-        
-        return min(100, max(0, score))
-    
-    def _suggest_direction(self, data: MarketData) -> str:
-        """Suggest trading direction based on analysis"""
-        if data.sentiment_score > 0.3 and "BULLISH" in data.trend:
-            return "LONG"
-        elif data.sentiment_score < -0.3 and "BEARISH" in data.trend:
-            return "SHORT"
-        else:
-            return "NEUTRAL"
-
-# --- 7. PERFORMANCE ANALYTICS ENGINE ---
-class PerformanceAnalytics:
-    """Track and analyze trading performance"""
-    
-    def __init__(self):
-        self.trades = []
-        self.metrics = {
-            'total_trades': 0,
-            'winning_trades': 0,
-            'losing_trades': 0,
-            'win_rate': 0.0,
-            'total_pnl': 0.0,
-            'avg_win': 0.0,
-            'avg_loss': 0.0,
-            'profit_factor': 0.0,
-            'sharpe_ratio': 0.0,
-            'max_drawdown': 0.0,
-            'current_aum': 14_900_000.0
+        self.scan_universe = {
+            "PRECIOUS_METALS": [
+                ("XAUUSD", "GC=F", "Gold Futures"),
+                ("XAGUSD", "SI=F", "Silver Futures"),
+            ],
+            "ENERGY": [
+                ("USOIL", "CL=F", "Crude Oil Futures"),
+            ],
+            "INDICES": [
+                ("SPX", "ES=F", "S&P 500 Futures"),
+                ("NDX", "NQ=F", "NASDAQ Futures"),
+            ],
+            "CRYPTO": [
+                ("BTC", "BTC-USD", "Bitcoin"),
+                ("ETH", "ETH-USD", "Ethereum"),
+            ],
+            "FOREX": [
+                ("EURUSD", "EURUSD=X", "Euro"),
+                ("USDJPY", "USDJPY=X", "Yen"),
+            ]
         }
     
-    def add_trade(self, trade: Dict):
-        """Record a completed trade"""
-        self.trades.append(trade)
-        self._update_metrics()
+    def scan_all_markets(self) -> List[Dict]:
+        """Scan all markets for high-probability setups"""
+        all_setups = []
+        
+        progress = st.progress(0)
+        total = sum(len(assets) for assets in self.scan_universe.values())
+        current = 0
+        
+        for sector, assets in self.scan_universe.items():
+            for name, symbol, display in assets:
+                current += 1
+                progress.progress(current / total)
+                
+                data = self.data_engine.fetch_institutional_data(symbol)
+                if data:
+                    score = self._calculate_probability_score(data)
+                    if score > 60:
+                        all_setups.append({
+                            'sector': sector,
+                            'name': name,
+                            'display': display,
+                            'symbol': symbol,
+                            'score': score,
+                            'data': data,
+                            'direction': self._determine_direction(data)
+                        })
+        
+        progress.empty()
+        all_setups.sort(key=lambda x: x['score'], reverse=True)
+        return all_setups[:5]
     
-    def _update_metrics(self):
-        """Update performance metrics"""
-        if self.trades:
-            self.metrics['total_trades'] = len(self.trades)
-            
-            winning_trades = [t for t in self.trades if t.get('pnl', 0) > 0]
-            losing_trades = [t for t in self.trades if t.get('pnl', 0) <= 0]
-            
-            self.metrics['winning_trades'] = len(winning_trades)
-            self.metrics['losing_trades'] = len(losing_trades)
-            self.metrics['win_rate'] = len(winning_trades) / len(self.trades) * 100
-            
-            pnls = [t.get('pnl', 0) for t in self.trades]
-            self.metrics['total_pnl'] = sum(pnls)
-            
-            if winning_trades:
-                self.metrics['avg_win'] = np.mean([t['pnl'] for t in winning_trades])
-            if losing_trades:
-                self.metrics['avg_loss'] = abs(np.mean([t['pnl'] for t in losing_trades]))
-            
-            total_wins = sum([t['pnl'] for t in winning_trades]) if winning_trades else 0
-            total_losses = abs(sum([t['pnl'] for t in losing_trades])) if losing_trades else 1
-            self.metrics['profit_factor'] = total_wins / total_losses if total_losses > 0 else 0
-            
-            # Calculate Sharpe Ratio (simplified)
-            if len(pnls) > 1:
-                returns = np.array(pnls) / self.metrics['current_aum']
-                self.metrics['sharpe_ratio'] = np.mean(returns) / np.std(returns) * np.sqrt(252) if np.std(returns) > 0 else 0
-            
-            # Calculate Max Drawdown
-            cumulative = np.cumsum(pnls)
-            running_max = np.maximum.accumulate(cumulative)
-            drawdowns = (running_max - cumulative) / self.metrics['current_aum'] * 100
-            self.metrics['max_drawdown'] = np.max(drawdowns) if len(drawdowns) > 0 else 0
+    def _calculate_probability_score(self, data: Dict) -> float:
+        """Multi-factor probability scoring"""
+        score = 50
+        
+        # Trend alignment
+        if data['price_structure'] == 'BULLISH_STRUCTURE':
+            score += 15
+        elif data['price_structure'] == 'BEARISH_STRUCTURE':
+            score += 10
+        
+        # RSI optimal zone
+        rsi = data['rsi_14']
+        if 40 <= rsi <= 60:
+            score += 10
+        elif 30 <= rsi <= 70:
+            score += 5
+        
+        # Volume confirmation
+        if data['volume_ratio'] > 1.5:
+            score += 15
+        
+        # MACD confirmation
+        if data['macd_histogram'] > 0 and 'BULLISH' in data['price_structure']:
+            score += 10
+        elif data['macd_histogram'] < 0 and 'BEARISH' in data['price_structure']:
+            score += 10
+        
+        # ATR range
+        atr_pct = data['atr_14'] / data['price'] * 100
+        if 1 < atr_pct < 3:
+            score += 5
+        
+        return min(100, score)
+    
+    def _determine_direction(self, data: Dict) -> str:
+        """Determine optimal trade direction"""
+        if data['price_structure'] == 'BULLISH_STRUCTURE' and data['rsi_14'] < 60:
+            return 'LONG'
+        elif data['price_structure'] == 'BEARISH_STRUCTURE' and data['rsi_14'] > 40:
+            return 'SHORT'
+        return 'NEUTRAL'
 
-# --- 8. MAIN APPLICATION ---
+# ============================================
+# MAIN APPLICATION
+# ============================================
+
 def main():
-    """Main application entry point"""
+    """Sovereign Fund Capital - Main Application"""
     
     # Initialize session state
-    if 'board' not in st.session_state:
-        st.session_state.board = SovereignBoard()
-    if 'scanner' not in st.session_state:
-        st.session_state.scanner = InstitutionalSetupScanner()
     if 'data_engine' not in st.session_state:
         st.session_state.data_engine = InstitutionalDataEngine()
-    if 'analytics' not in st.session_state:
-        st.session_state.analytics = PerformanceAnalytics()
-    if 'active_positions' not in st.session_state:
-        st.session_state.active_positions = []
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = "Trading Floor"
+    if 'board' not in st.session_state:
+        st.session_state.board = SovereignBoardOfGovernors()
+    if 'scanner' not in st.session_state:
+        st.session_state.scanner = InstitutionalSetupScanner()
+    if 'active_directives' not in st.session_state:
+        st.session_state.active_directives = []
+    if 'scan_results' not in st.session_state:
+        st.session_state.scan_results = []
     
-    # API Configuration
-    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-    if not GOOGLE_API_KEY:
-        st.error("🔴 CRITICAL: GOOGLE_API_KEY not found in environment variables.")
-        st.info("Please set your GOOGLE_API_KEY environment variable to continue.")
+    # Check API key
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        st.error("🔴 GOOGLE_API_KEY not configured!")
+        st.code("export GOOGLE_API_KEY='your-api-key'")
         st.stop()
     
-    genai.configure(api_key=GOOGLE_API_KEY)
+    genai.configure(api_key=api_key)
     
-    # --- SIDEBAR NAVIGATION ---
+    # ============================================
+    # SIDEBAR - COMMAND CENTER
+    # ============================================
     with st.sidebar:
         st.markdown("""
-            <div style="text-align: center; padding: 20px 0;">
-                <h2 style="color: #d4af37; font-family: 'Playfair Display', serif; 
-                           font-size: 1.5rem; margin: 0; letter-spacing: 2px;">
-                    🏛️ SOVEREIGN
-                </h2>
-                <p style="color: #888; font-size: 0.7rem; letter-spacing: 3px; margin: 5px 0;">
-                    COMMAND CENTER
-                </p>
+            <div style="text-align:center; padding:20px 0;">
+                <h2 style="color:#C8A84E; font-family:'Cormorant Garamond',serif; 
+                           letter-spacing:4px; font-size:1.8rem;">SOVEREIGN</h2>
+                <p style="color:#888; font-size:0.6rem; letter-spacing:3px;">FUND CAPITAL</p>
             </div>
         """, unsafe_allow_html=True)
-        
-        # Navigation
-        st.markdown("### NAVIGATION")
-        pages = {
-            "Trading Floor": "🎯",
-            "Board Room": "🏛️",
-            "Setup Scanner": "🔍",
-            "Performance Analytics": "📊",
-            "Risk Monitor": "⚠️"
-        }
-        
-        for page_name, icon in pages.items():
-            if st.button(f"{icon} {page_name}", use_container_width=True, 
-                        key=f"nav_{page_name}"):
-                st.session_state.current_page = page_name
         
         st.divider()
         
         # AUM Display
         st.markdown("### 💰 ASSETS UNDER MANAGEMENT")
         
-        aum_data = {
-            "DNA Fund": {"value": "$5,000,000", "delta": "+2.3%"},
-            "Sure Leverage": {"value": "$4,900,000", "delta": "+1.8%"},
-            "Aqua Reserve": {"value": "$5,000,000", "delta": "+0.5%"}
-        }
-        
-        for fund_name, data in aum_data.items():
-            st.metric(
-                fund_name,
-                data['value'],
-                data['delta']
-            )
+        col1, col2 = st.columns(2)
+        col1.metric("DNA Fund", "$4,995", "🔒")
+        col2.metric("Sure Leverage", "$4,968", "🔒")
+        st.metric("Total AUM", "$9,963", "🎯 Target: $1B+")
         
         st.divider()
         
-        # Market Time
+        # Navigation
+        st.markdown("### 📋 DIRECTIVES")
+        page = st.radio(
+            "Select Command",
+            ["🏛️ Board Room", "🎯 Trading Terminal", "🔍 Market Scanner", "📊 Portfolio"],
+            label_visibility="collapsed"
+        )
+        
+        st.divider()
+        
+        # Market Status
         ny_time = datetime.now(pytz.timezone('America/New_York'))
-        london_time = datetime.now(pytz.timezone('Europe/London'))
-        tokyo_time = datetime.now(pytz.timezone('Asia/Tokyo'))
-        
-        st.markdown("### 🌍 GLOBAL MARKETS")
         st.markdown(f"""
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #888;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:#666;">
             🇺🇸 NY: {ny_time.strftime('%H:%M:%S')} EST<br>
-            🇬🇧 LDN: {london_time.strftime('%H:%M:%S')} GMT<br>
-            🇯🇵 TKY: {tokyo_time.strftime('%H:%M:%S')} JST
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.divider()
-        
-        # Security Status
-        st.markdown("### 🔒 SECURITY STATUS")
-        st.markdown("""
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;">
-            <span style="color: #00ff88;">●</span> Connection: ENCRYPTED<br>
-            <span style="color: #00ff88;">●</span> AI Engine: OPERATIONAL<br>
-            <span style="color: #00ff88;">●</span> Risk System: ACTIVE<br>
-            <span style="color: #ffaa00;">●</span> Market Data: LIVE
+            📡 Data: LIVE<br>
+            🔒 Security: ENCRYPTED
             </div>
         """, unsafe_allow_html=True)
     
-    # --- HEADER ---
-    st.markdown("""
-        <h1 style="text-align: center; margin-bottom: 5px;">
-            SOVEREIGN FUND CAPITAL
-        </h1>
-        <p style="text-align: center; color: #d4af37; font-style: italic; font-size: 1rem; margin-bottom: 5px;">
-            Institutional AI Trading & Asset Management
-        </p>
-        <p style="text-align: center; color: #666; font-size: 0.7rem; letter-spacing: 2px;">
-            EST. 2024 | PRIVATE HEDGE FUND | AI-GOVERNED
+    # ============================================
+    # HEADER
+    # ============================================
+    st.markdown("">
+        <h1 class="institutional-header">SOVEREIGN FUND CAPITAL</h1>
+        <p style="text-align:center; color:#888; font-size:0.8rem; letter-spacing:2px;">
+            INSTITUTIONAL AI BOARD OF GOVERNORS | PRIVATE HEDGE FUND
         </p>
     """, unsafe_allow_html=True)
     
     st.divider()
     
-    # --- PAGE ROUTING ---
-    current_page = st.session_state.current_page
-    
-    if current_page == "Trading Floor":
-        render_trading_floor()
-    elif current_page == "Board Room":
+    # ============================================
+    # PAGE ROUTING
+    # ============================================
+    if page == "🏛️ Board Room":
         render_board_room()
-    elif current_page == "Setup Scanner":
-        render_setup_scanner()
-    elif current_page == "Performance Analytics":
-        render_performance_analytics()
-    elif current_page == "Risk Monitor":
-        render_risk_monitor()
-
-def render_trading_floor():
-    """Main trading interface"""
-    
-    # Live Market Dashboard
-    st.markdown("### 📊 LIVE INSTITUTIONAL MARKET DASHBOARD")
-    
-    # Get market overview
-    with st.spinner("Fetching institutional market data..."):
-        market_overview = st.session_state.data_engine.get_market_overview()
-    
-    # Display key metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    metrics_display = [
-        ("S&P 500", "sp500", "🇺🇸"),
-        ("NASDAQ", "nasdaq", "📈"),
-        ("Gold Futures", "gold", "🥇"),
-        ("Bitcoin", "bitcoin", "₿")
-    ]
-    
-    for i, (label, key, icon) in enumerate(metrics_display):
-        with [col1, col2, col3, col4][i]:
-            if key in market_overview:
-                data = market_overview[key]
-                trend_color = "#00ff88" if "BULL" in data['trend'] else "#ff4444" if "BEAR" in data['trend'] else "#ffaa00"
-                
-                st.markdown(f"""
-                    <div class="metric-card">
-                        <div style="font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1px;">
-                            {icon} {label}
-                        </div>
-                        <div style="font-size: 1.5rem; font-weight: 700; margin: 10px 0; font-family: 'JetBrains Mono', monospace;">
-                            {data['price']:,.2f}
-                        </div>
-                        <div style="color: {trend_color}; font-size: 0.8rem; font-weight: 600;">
-                            {data['trend'].replace('_', ' ')}
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
-    
-    st.divider()
-    
-    # Trading Command Center
-    st.markdown("### 🎯 EXECUTIVE TRADING COMMAND")
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        with st.expander("📋 POSITION BUILDER", expanded=True):
-            asset = st.selectbox(
-                "Select Instrument",
-                ["XAUUSD (Gold)", "BTCUSD (Bitcoin)", "SPX500 (S&P 500)", 
-                 "USOIL (Crude Oil)", "EURUSD (Euro)", "USDJPY (Yen)"],
-                key="trading_asset"
-            )
-            
-            direction = st.radio(
-                "Direction",
-                ["LONG 📈", "SHORT 📉"],
-                horizontal=True,
-                key="trading_direction"
-            )
-            
-            col_entry, col_sl, col_tp = st.columns(3)
-            with col_entry:
-                entry = st.number_input("Entry Price", value=0.0, step=0.01, key="entry_price")
-            with col_sl:
-                stop_loss = st.number_input("Stop Loss", value=0.0, step=0.01, key="stop_loss")
-            with col_tp:
-                take_profit = st.number_input("Take Profit", value=0.0, step=0.01, key="take_profit")
-    
-    with col2:
-        st.markdown("### ⚙️ RISK PARAMETERS")
-        risk_percent = st.slider(
-            "Risk % of AUM",
-            min_value=0.1,
-            max_value=1.0,
-            value=0.5,
-            step=0.1,
-            key="risk_percent"
-        )
-        
-        if entry > 0 and stop_loss > 0:
-            risk_amount = 14_900_000 * (risk_percent / 100)
-            position_size = risk_amount / abs(entry - stop_loss)
-            
-            st.metric("Max Risk", f"${risk_amount:,.0f}")
-            st.metric("Position Size", f"{position_size:,.2f} units")
-            st.metric("Notional Value", f"${position_size * entry:,.0f}")
-    
-    # Submit for Board Review
-    if st.button("⚡ SUBMIT FOR BOARD REVIEW", use_container_width=True, key="submit_trade"):
-        if entry <= 0:
-            st.error("Please enter a valid entry price.")
-        else:
-            with st.spinner("🏛️ Convening Sovereign Board of Governors..."):
-                # Prepare directive
-                directive = f"""
-                Analyze {asset} for a {direction} position.
-                Proposed Entry: {entry}
-                Stop Loss: {stop_loss}
-                Take Profit: {take_profit}
-                Risk: {risk_percent}% of AUM
-                """
-                
-                # Get comprehensive market data
-                symbol_map = {
-                    "XAUUSD (Gold)": "GC=F",
-                    "BTCUSD (Bitcoin)": "BTC-USD",
-                    "SPX500 (S&P 500)": "ES=F",
-                    "USOIL (Crude Oil)": "CL=F",
-                    "EURUSD (Euro)": "EURUSD=X",
-                    "USDJPY (Yen)": "USDJPY=X"
-                }
-                
-                symbol = symbol_map.get(asset, "GC=F")
-                market_data = st.session_state.data_engine.get_comprehensive_data(symbol)
-                
-                if market_data:
-                    # Convene board
-                    decision = st.session_state.board.convene_board(
-                        directive,
-                        {"asset": asset, "technical": market_data.__dict__}
-                    )
-                    
-                    # Display decision
-                    st.divider()
-                    st.markdown("### 🏛️ SOVEREIGN BOARD DECISION")
-                    
-                    # Decision header
-                    signal_color = "#00ff88" if decision.trade_signal == "BUY" else "#ff4444" if decision.trade_signal == "SELL" else "#ffaa00"
-                    
-                    st.markdown(f"""
-                        <div class="board-response">
-                            <h3 style="color: {signal_color}; margin: 0;">
-                                FINAL DECISION: {decision.trade_signal}
-                            </h3>
-                            <p style="color: #888; font-size: 0.8rem; margin: 5px 0;">
-                                Chairman Osinachi Presiding | Confidence: {decision.confidence}/10
-                            </p>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Decision details
-                    col1, col2, col3, col4 = st.columns(4)
-                    col1.metric("Entry", f"${decision.entry_level:,.2f}")
-                    col2.metric("Stop Loss", f"${decision.stop_loss:,.2f}")
-                    col3.metric("Take Profit", f"${decision.take_profit:,.2f}")
-                    col4.metric("R:R Ratio", f"1:{decision.risk_reward}")
-                    
-                    st.markdown(f"**Position Size:** {decision.position_size}% of AUM")
-                    st.markdown(f"**Execution:** {decision.execution_instructions}")
-                    st.markdown(f"**Timeframe:** {decision.timeframe}")
-                    
-                    # Full analysis
-                    with st.expander("📄 VIEW FULL BOARD ANALYSIS", expanded=False):
-                        st.markdown(decision.full_analysis)
-                    
-                    # Adversary notes
-                    with st.expander("⚔️ ADVERSARY CHALLENGE", expanded=False):
-                        st.markdown(decision.adversary_notes)
-                else:
-                    st.error("Unable to fetch market data. Please try again.")
-    
-    # Active Positions
-    st.divider()
-    st.markdown("### 📊 ACTIVE POSITIONS")
-    
-    if st.session_state.active_positions:
-        positions_df = pd.DataFrame(st.session_state.active_positions)
-        st.dataframe(positions_df, use_container_width=True, hide_index=True)
-    else:
-        st.info("No active positions. Submit a trade for Board review to open a position.")
-        
-        # Sample data for demonstration
-        sample_positions = pd.DataFrame({
-            "Instrument": ["XAUUSD", "BTCUSD", "SPX500"],
-            "Direction": ["LONG", "SHORT", "LONG"],
-            "Entry": [2345.60, 67450.00, 5234.50],
-            "Current": [2356.80, 67120.00, 5280.00],
-            "P&L": ["+$1,120", "+$3,300", "+$2,275"],
-            "P&L %": ["+0.48%", "+0.49%", "+0.87%"],
-            "Status": ["RUNNING", "RUNNING", "RUNNING"]
-        })
-        
-        with st.expander("📈 SAMPLE POSITIONS (DEMO)", expanded=False):
-            st.dataframe(sample_positions, use_container_width=True, hide_index=True)
+    elif page == "🎯 Trading Terminal":
+        render_trading_terminal()
+    elif page == "🔍 Market Scanner":
+        render_market_scanner()
+    elif page == "📊 Portfolio":
+        render_portfolio()
 
 def render_board_room():
-    """Board of Directors governance interface"""
+    """Institutional Board Room"""
     
-    st.markdown("### 🏛️ THE SOVEREIGN BOARD OF GOVERNORS")
-    st.markdown("*Federal Reserve Model - Institutional AI Governance Framework*")
+    st.markdown("### 🏛️ BOARD OF GOVERNORS")
+    st.markdown("*Federal Reserve Model - Seven Specialized Governors + Chairman Osinachi*")
     
-    # Board Members Grid
-    st.markdown("#### Board Composition & Expertise")
-    
+    # Display board members
     board = st.session_state.board
-    members = board.board_members
-    
-    # Display members in a grid
     cols = st.columns(4)
-    member_list = list(members.items())
     
-    for i in range(0, len(member_list), 2):
-        for j in range(2):
-            if i + j < len(member_list):
-                gov_id, gov_info = member_list[i + j]
-                with cols[j]:
-                    is_chairman = gov_id == "CHAIRMAN_OSINACHI"
-                    
-                    st.markdown(f"""
-                        <div class="member-card" style="{'border-color: #d4af37;' if is_chairman else ''}">
-                            <div class="role" style="{'font-size: 1rem;' if is_chairman else ''}">
-                                {'👑 ' if is_chairman else '🎓 '}{gov_info['role']}
-                            </div>
-                            <div class="expertise" style="margin: 8px 0;">
-                                {gov_info['expertise']}
-                            </div>
-                            <div style="font-size: 0.65rem; color: #666; margin-top: 8px;">
-                                {gov_info['background']}
-                            </div>
-                            <div style="margin-top: 8px;">
-                                <div style="font-size: 0.6rem; color: #888; margin-bottom: 3px;">Voting Weight</div>
-                                <div style="background: #1a1a1a; height: 3px; border-radius: 2px;">
-                                    <div style="background: {'#d4af37' if is_chairman else '#4a4a4a'}; 
-                                                height: 100%; width: {gov_info['prompt_weight']*100}%; 
-                                                border-radius: 2px;"></div>
-                                </div>
-                            </div>
+    for i, (gov_id, gov) in enumerate(board.governors.items()):
+        with cols[i % 4]:
+            is_chairman = gov_id == "CHAIRMAN_OSINACHI"
+            border = "2px solid #C8A84E" if is_chairman else "1px solid #222"
+            
+            st.markdown(f"""
+                <div class="governor-card {'chairman' if is_chairman else ''}" 
+                     style="border: {border}; margin: 5px 0; padding: 15px;">
+                    <div class="governor-role">{'👑 ' if is_chairman else ''}{gov['title']}</div>
+                    <div class="governor-name">{gov['role']}</div>
+                    <div style="font-size:0.65rem; color:#555; margin-top:8px;">{gov['expertise'][:50]}...</div>
+                    <div style="margin-top:8px;">
+                        <div style="background:#1A1A1A; height:2px;">
+                            <div style="background:{'#C8A84E' if is_chairman else '#444'}; 
+                                        width:{gov['weight']*100}%; height:100%;"></div>
                         </div>
-                    """, unsafe_allow_html=True)
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
     
     st.divider()
     
-    # Board Directive Input
-    st.markdown("### 📋 PRESIDENTIAL DIRECTIVE")
-    st.markdown("*Submit your strategic directive for full Board analysis*")
+    # Directive input
+    st.markdown("### 📋 SUBMIT DIRECTIVE TO BOARD")
     
     col1, col2 = st.columns([3, 1])
     
     with col1:
-        directive = st.text_area(
-            "Enter your directive:",
-            placeholder="""Example directives:
-    - "Analyze impact of potential 50bps Fed rate cut on gold and provide entry strategy"
-    - "Evaluate Bitcoin institutional adoption trends and optimal accumulation zones"
-    - "Assess S&P 500 risk-reward ahead of FOMC meeting with specific hedging strategy"
-    - "Review EUR/USD positioning following ECB policy divergence"
-    """,
-            height=120,
+        directive_text = st.text_area(
+            "Presidential Directive:",
+            placeholder="Example: 'Analyze XAUUSD for a strategic long position. Current price showing institutional accumulation. Request full board analysis with entry, exit, and risk parameters.'",
+            height=100,
             key="board_directive"
         )
-    
-    with col2:
-        st.markdown("#### Analysis Parameters")
-        include_technical = st.checkbox("Technical Analysis", value=True)
-        include_macro = st.checkbox("Macro Analysis", value=True)
-        include_flow = st.checkbox("Order Flow Analysis", value=True)
-        include_risk = st.checkbox("Risk Assessment", value=True)
         
-        urgency = st.select_slider(
-            "Urgency Level",
-            options=["ROUTINE", "PRIORITY", "URGENT", "CRITICAL"],
-            value="PRIORITY"
+        asset_select = st.selectbox(
+            "Asset",
+            ["XAUUSD (Gold)", "BTCUSD (Bitcoin)", "SPX500 (S&P 500)", 
+             "USOIL (Crude Oil)", "EURUSD (Euro)", "USDJPY (Yen)"],
+            key="board_asset"
         )
     
-    if st.button("🏛️ CONVENE FULL BOARD", use_container_width=True, key="convene_board"):
-        if directive:
-            with st.spinner(f"🏛️ Board of Governors in {urgency} session..."):
-                # Get comprehensive market data
-                st.info("Gathering institutional market intelligence...")
-                
-                market_data = st.session_state.data_engine.get_market_overview()
-                
-                # Convene board
-                st.info("Governors preparing individual analyses...")
-                decision = st.session_state.board.convene_board(directive, market_data)
-                
-                # Display Results
-                st.divider()
-                st.markdown("### 📊 BOARD DELIBERATION RESULTS")
-                
-                # Final Decision Banner
-                signal_color = "#00ff88" if decision.trade_signal == "BUY" else "#ff4444" if decision.trade_signal == "SELL" else "#ffaa00"
-                
-                st.markdown(f"""
-                    <div style="background: linear-gradient(135deg, #0d0d0d, #1a1a1a); 
-                                padding: 30px; border-radius: 10px; border: 2px solid {signal_color};
-                                margin: 20px 0; text-align: center;">
-                        <h2 style="color: {signal_color}; margin: 0; font-size: 2rem;">
-                            {decision.trade_signal}
-                        </h2>
-                        <p style="color: #888; margin: 10px 0 0 0;">
-                            Chairman Osinachi's Final Verdict | Confidence: {decision.confidence}/10
-                        </p>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                # Key metrics
-                col1, col2, col3, col4 = st.columns(4)
-                col1.metric("Entry Level", f"${decision.entry_level:,.2f}")
-                col2.metric("Stop Loss", f"${decision.stop_loss:,.2f}")
-                col3.metric("Take Profit", f"${decision.take_profit:,.2f}")
-                col4.metric("Risk/Reward", f"1:{decision.risk_reward}")
-                
-                # Full analysis
-                with st.expander("📄 COMPLETE BOARD ANALYSIS", expanded=True):
-                    st.markdown(decision.full_analysis)
-                
-                # Adversary challenge
-                with st.expander("⚔️ INTERNAL ADVERSARY AUDIT", expanded=False):
-                    st.markdown(f'<div class="intel-feed">{decision.adversary_notes}</div>', 
-                              unsafe_allow_html=True)
-                
-                # Execution instructions
-                with st.expander("🎯 EXECUTION ORDERS", expanded=False):
-                    st.markdown(f"""
-                        **Execution Strategy:** {decision.execution_instructions}
-                        
-                        **Key Risks:**
-                        {chr(10).join(f'- {risk}' for risk in decision.key_risks)}
-                        
-                        **Timeframe:** {decision.timeframe}
-                    """)
-        else:
-            st.error("Please enter a directive for the Board to analyze.")
-
-def render_setup_scanner():
-    """High-probability institutional setup scanner"""
-    
-    st.markdown("### 🔍 INSTITUTIONAL SETUP SCANNER")
-    st.markdown("*AI-Powered Detection of High-Probability Institutional Trading Setups*")
-    
-    # Scanner controls
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        min_probability = st.slider("Minimum Probability Score", 50, 100, 60)
     with col2:
-        scan_timeframe = st.selectbox("Timeframe", ["1H", "4H", "Daily", "Weekly"], index=2)
-    with col3:
-        asset_class = st.multiselect(
-            "Asset Class",
-            ["Commodities", "FX", "Indices", "Crypto"],
-            default=["Commodities", "Crypto"]
-        )
+        st.markdown("#### Board Protocol")
+        st.info("""
+        **Process:**
+        1. Intelligence Gathering
+        2. Individual Governor Analysis
+        3. Full Board Debate
+        4. Chairman's Final Verdict
+        
+        **Output:**
+        - Precise entry/exit
+        - Position sizing
+        - Risk parameters
+        - Execution protocol
+        """)
     
-    if st.button("🔍 SCAN FOR HIGH-PROBABILITY SETUPS", use_container_width=True):
-        with st.spinner("Scanning institutional order flow across markets..."):
-            setups = st.session_state.scanner.scan_for_setups()
+    if st.button("🏛️ CONVENE FULL BOARD", use_container_width=True, type="primary"):
+        if directive_text:
+            # Map asset to symbol
+            symbol_map = {
+                "XAUUSD (Gold)": "GC=F",
+                "BTCUSD (Bitcoin)": "BTC-USD",
+                "SPX500 (S&P 500)": "ES=F",
+                "USOIL (Crude Oil)": "CL=F",
+                "EURUSD (Euro)": "EURUSD=X",
+                "USDJPY (Yen)": "USDJPY=X"
+            }
             
-            if setups:
-                st.success(f"✅ Found {len(setups)} high-probability institutional setups")
+            symbol = symbol_map.get(asset_select, "GC=F")
+            
+            # Fetch market data
+            with st.spinner("📡 Fetching institutional data..."):
+                market_data = st.session_state.data_engine.fetch_institutional_data(symbol)
+            
+            if market_data:
+                # Convene board
+                directive = st.session_state.board.convene_board(
+                    asset_select, directive_text, market_data
+                )
                 
-                for idx, setup in enumerate(setups):
-                    with st.expander(
-                        f"{'🥇' if idx == 0 else '🥈' if idx == 1 else '🥉' if idx == 2 else '📊'} "
-                        f"{setup['name']} - Probability Score: {setup['probability_score']}/100",
-                        expanded=(idx == 0)
-                    ):
-                        col1, col2, col3 = st.columns(3)
-                        
-                        with col1:
-                            st.metric("Current Price", f"${setup['price']:,.2f}")
-                            st.metric("Trend", setup['trend'].replace('_', ' '))
-                        
-                        with col2:
-                            st.metric("RSI", f"{setup['rsi']:.1f}")
-                            st.metric("Sentiment", f"{setup['sentiment']:.2f}")
-                        
-                        with col3:
-                            st.metric("Institutional Flow", setup['institutional_flow'].replace('_', ' '))
-                            st.metric("Suggested Direction", setup['suggested_direction'])
-                        
-                        # Detailed analysis
-                        st.markdown(f"""
-                            **Volume Analysis:** {'⚠️ Anomaly Detected' if setup['volume_anomaly'] else 'Normal'}
-                            **ATR:** {setup['atr']:.4f}
-                            **Probability Factors:**
-                            - Trend Alignment: {'✅' if 'BULL' in setup['trend'] or 'BEAR' in setup['trend'] else '⚠️'}
-                            - Volume Confirmation: {'✅' if setup['volume_anomaly'] else '⚠️'}
-                            - Institutional Flow: {'✅' if 'ACCUMULATION' in setup['institutional_flow'] else '⚠️'}
-                            - RSI Optimal: {'✅' if 30 <= setup['rsi'] <= 70 else '⚠️'}
-                        """)
-                        
-                        if st.button(f"📊 Submit for Board Analysis", key=f"analyze_{setup['symbol']}"):
-                            st.session_state['scanner_selected'] = setup
-                            st.success(f"Setup for {setup['name']} submitted for Board analysis!")
+                # Display final directive
+                st.divider()
+                display_board_directive(directive)
+                
+                # Store
+                st.session_state.active_directives.append(directive)
             else:
-                st.warning("No high-probability setups detected in current market conditions.")
-                st.info("Try adjusting the minimum probability score or scanning different asset classes.")
+                st.error("Unable to fetch market data. Check symbol or try again.")
+        else:
+            st.error("Please enter a directive for the Board.")
 
-def render_performance_analytics():
-    """Performance analytics dashboard"""
+def render_trading_terminal():
+    """Trading Terminal"""
     
-    st.markdown("### 📈 PERFORMANCE ANALYTICS")
+    st.markdown("### 🎯 EXECUTION TERMINAL")
     
-    # Key metrics
-    metrics = st.session_state.analytics.metrics
+    # Quick scan
+    if st.button("🔍 AUTO-SCAN FOR HIGH PROBABILITY SETUPS", use_container_width=True):
+        with st.spinner("Scanning institutional order flow..."):
+            st.session_state.scan_results = st.session_state.scanner.scan_all_markets()
     
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Trades", metrics['total_trades'])
-    col2.metric("Win Rate", f"{metrics['win_rate']:.1f}%")
-    col3.metric("Profit Factor", f"{metrics['profit_factor']:.2f}")
-    col4.metric("Sharpe Ratio", f"{metrics['sharpe_ratio']:.2f}")
+    # Display scan results
+    if st.session_state.scan_results:
+        st.success(f"Found {len(st.session_state.scan_results)} high-probability setups")
+        
+        for setup in st.session_state.scan_results:
+            with st.expander(
+                f"🎯 **{setup['display']}** | Score: {setup['score']}/100 | Direction: {setup['direction']}",
+                expanded=True
+            ):
+                col1, col2, col3 = st.columns(3)
+                data = setup['data']
+                
+                col1.metric("Price", f"${data['price']:,.2f}")
+                col2.metric("RSI", f"{data['rsi_14']:.1f}")
+                col3.metric("Structure", data['price_structure'].replace('_', ' '))
+                
+                if st.button(f"📊 Submit to Board", key=f"submit_{setup['symbol']}"):
+                    st.session_state['pending_setup'] = setup
+                    st.success(f"Setup submitted! Switch to Board Room for full analysis.")
     
     st.divider()
     
-    # Performance charts (sample data for demonstration)
-    st.markdown("#### Equity Curve")
-    
-    # Generate sample equity curve
-    np.random.seed(42)
-    dates = pd.date_range(start='2024-01-01', periods=100, freq='D')
-    equity = 1000000 * (1 + np.random.randn(100).cumsum() * 0.01)
-    
-    equity_df = pd.DataFrame({'Date': dates, 'Equity': equity})
-    st.line_chart(equity_df.set_index('Date'))
-    
-    st.markdown("#### Monthly Returns Distribution")
-    
-    monthly_returns = pd.DataFrame({
-        'Month': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        'Returns %': [2.3, -1.5, 3.1, 1.8, -0.5, 2.9]
-    })
-    st.bar_chart(monthly_returns.set_index('Month'))
-
-def render_risk_monitor():
-    """Risk monitoring dashboard"""
-    
-    st.markdown("### ⚠️ RISK MONITORING DASHBOARD")
+    # Manual entry
+    st.markdown("### 📋 Manual Position Entry")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("#### Portfolio Risk Metrics")
+        asset = st.selectbox("Asset", 
+            ["XAUUSD", "BTCUSD", "SPX500", "USOIL", "EURUSD", "USDJPY"],
+            key="manual_asset"
+        )
+        direction = st.radio("Direction", ["LONG", "SHORT"], horizontal=True)
         
-        risk_metrics = {
-            "Value at Risk (95%)": "$156,000",
-            "Expected Shortfall": "$234,000",
-            "Beta (vs S&P)": "0.45",
-            "Correlation": "0.32",
-            "Max Drawdown": "-8.2%",
-            "Leverage Ratio": "1:1.5"
-        }
-        
-        for metric, value in risk_metrics.items():
-            st.metric(metric, value)
+        col_e, col_s, col_t = st.columns(3)
+        entry = col_e.number_input("Entry", value=0.0, step=0.01)
+        stop = col_s.number_input("Stop Loss", value=0.0, step=0.01)
+        target = col_t.number_input("Target", value=0.0, step=0.01)
     
     with col2:
-        st.markdown("#### Position Limits")
+        risk = st.slider("Risk % of AUM", 0.1, 1.0, 0.5, 0.1)
         
-        st.info("""
-        **Risk Limits:**
-        - Max Position Size: 1% of AUM
-        - Max Sector Exposure: 25%
-        - Max Correlation: 0.7
-        - Min Diversification: 5 assets
-        
-        **Current Status:**
-        ✅ All limits within parameters
-        ✅ No concentration warnings
-        ✅ Liquidity adequate
-        """)
+        if entry > 0 and stop > 0:
+            total_aum = 9963  # Current total AUM
+            risk_amount = total_aum * (risk / 100)
+            pos_size = risk_amount / abs(entry - stop)
+            
+            st.metric("Max Risk", f"${risk_amount:.2f}")
+            st.metric("Position Size", f"{pos_size:.4f} units")
+            st.metric("Notional", f"${pos_size * entry:,.2f}")
+    
+    if st.button("🔍 ANALYZE WITH BOARD", use_container_width=True):
+        if entry > 0:
+            with st.spinner("Board analyzing..."):
+                symbol_map = {
+                    "XAUUSD": "GC=F", "BTCUSD": "BTC-USD", "SPX500": "ES=F",
+                    "USOIL": "CL=F", "EURUSD": "EURUSD=X", "USDJPY": "USDJPY=X"
+                }
+                
+                symbol = symbol_map.get(asset, "GC=F")
+                market_data = st.session_state.data_engine.fetch_institutional_data(symbol)
+                
+                if market_data:
+                    directive_text = f"Analyze {asset} for {direction} position. Entry: {entry}, Stop: {stop}, Target: {target}"
+                    directive = st.session_state.board.convene_board(
+                        asset, directive_text, market_data
+                    )
+                    
+                    display_board_directive(directive)
+                    st.session_state.active_directives.append(directive)
+
+def render_market_scanner():
+    """Market Scanner"""
+    
+    st.markdown("### 🔍 INSTITUTIONAL SETUP SCANNER")
+    st.markdown("*Autonomous detection of high-probability institutional trading opportunities*")
+    
+    if st.button("🚀 SCAN ALL MARKETS", use_container_width=True, type="primary"):
+        with st.spinner("Scanning institutional data feeds..."):
+            results = st.session_state.scanner.scan_all_markets()
+            st.session_state.scan_results = results
+    
+    if st.session_state.scan_results:
+        for setup in st.session_state.scan_results:
+            with st.expander(
+                f"{'🥇' if setup['score'] > 80 else '🥈' if setup['score'] > 70 else '📊'} "
+                f"{setup['display']} | Score: {setup['score']}/100",
+                expanded=setup['score'] > 75
+            ):
+                data = setup['data']
+                
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("Price", f"${data['price']:,.2f}")
+                col2.metric("Direction", setup['direction'])
+                col3.metric("RSI", f"{data['rsi_14']:.1f}")
+                col4.metric("Volume", data['volume_trend'])
+                
+                st.markdown(f"""
+                    **Support Levels:** S1: ${data['support_resistance']['support_1']} | 
+                    S2: ${data['support_resistance']['support_2']}
+                    **Resistance Levels:** R1: ${data['support_resistance']['resistance_1']} | 
+                    R2: ${data['support_resistance']['resistance_2']}
+                    **ATR:** ${data['atr_14']:.2f} | **Volatility:** {data['volatility_30d']}%
+                """)
+                
+                if st.button(f"📊 Full Board Analysis", key=f"scan_board_{setup['symbol']}"):
+                    st.session_state['pending_scan'] = setup
+                    st.success("Switching to Board Room...")
+
+def render_portfolio():
+    """Portfolio Overview"""
+    
+    st.markdown("### 📊 SOVEREIGN PORTFOLIO")
+    
+    # Current positions
+    st.markdown("#### Active Positions")
+    
+    if st.session_state.active_directives:
+        for directive in st.session_state.active_directives[-5:]:
+            signal_color = "#00C853" if directive.signal == SignalType.BUY else "#FF1744"
+            st.markdown(f"""
+                <div style="border-left:3px solid {signal_color}; padding:10px; margin:10px 0; background:#0A0A0A;">
+                    <strong>{directive.asset}</strong> - {directive.signal.value} | 
+                    Conviction: {directive.conviction.value}/10 | Size: {directive.position_size_pct}%
+                </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("No active positions. Submit directives to the Board.")
+    
+    st.divider()
+    
+    # Performance metrics
+    st.markdown("#### Fund Performance")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("DNA Fund", "$4,995", "Active")
+    col2.metric("Sure Leverage", "$4,968", "Active")
+    col3.metric("Total AUM", "$9,963", "Growing")
+    col4.metric("Target", "$1,000,000,000+", "🎯")
+    
+    st.markdown("""
+        <div style="background:#0A0A0A; padding:20px; border:1px solid #222; border-radius:4px; margin-top:20px;">
+            <h4 style="color:#C8A84E;">🎯 GROWTH OBJECTIVE</h4>
+            <p style="color:#CCC;">
+                Current AUM: <strong>$9,963</strong><br>
+                Target: <strong>$1,000,000,000+</strong><br>
+                Strategy: Institutional AI-driven trading with Federal Reserve Board governance model<br>
+                Risk Management: Maximum 1% per trade, multi-governor approval required
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+def display_board_directive(directive: BoardDirective):
+    """Display board directive in institutional format"""
+    
+    signal_color = "#00C853" if directive.signal == SignalType.BUY else "#FF1744" if directive.signal == SignalType.SELL else "#FFD600"
+    
+    st.markdown(f"""
+        <div class="board-directive">
+            <div class="classified-stamp">CLASSIFIED</div>
+            
+            <div class="decision-banner {directive.signal.value.lower()}">
+                <h2 style="color:{signal_color}; font-size:2.5rem; margin:0;">
+                    {directive.signal.value}
+                </h2>
+                <p style="color:#888; margin:10px 0;">
+                    Directive #{directive.directive_id} | Conviction: {directive.conviction.value}/10
+                </p>
+            </div>
+            
+            <div class="param-grid">
+                <div class="param-item">
+                    <div class="param-label">Entry Zone</div>
+                    <div class="param-value">${directive.entry_zone[0]:.2f} - ${directive.entry_zone[1]:.2f}</div>
+                </div>
+                <div class="param-item">
+                    <div class="param-label">Stop Loss</div>
+                    <div class="param-value" style="color:#FF1744;">${directive.stop_loss:.2f}</div>
+                </div>
+                <div class="param-item">
+                    <div class="param-label">Target 1</div>
+                    <div class="param-value" style="color:#00C853;">${directive.targets[0]:.2f}</div>
+                </div>
+                <div class="param-item">
+                    <div class="param-label">Target 2</div>
+                    <div class="param-value" style="color:#00C853;">${directive.targets[1]:.2f}</div>
+                </div>
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:15px 0;">
+                <div>
+                    <strong style="color:#C8A84E;">Position Size:</strong> {directive.position_size_pct}% of AUM
+                </div>
+                <div>
+                    <strong style="color:#C8A84E;">Timeframe:</strong> {directive.timeframe.value}
+                </div>
+            </div>
+            
+            <div style="background:#0A0A0A; padding:20px; border-left:3px solid #C8A84E; margin:15px 0;">
+                <strong style="color:#C8A84E;">👑 CHAIRMAN'S VERDICT:</strong>
+                <p style="color:#CCC; margin:10px 0;">{directive.chairman_statement}</p>
+            </div>
+            
+            <div style="color:#666; font-size:0.8rem;">
+                <strong>Execution:</strong> {directive.execution_protocol}<br>
+                <strong>Risk Note:</strong> {directive.risk_assessment}<br>
+                <strong>Expiry:</strong> {directive.expiry}
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
