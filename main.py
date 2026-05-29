@@ -557,21 +557,15 @@ class SovereignBoardOfGovernors:
                     'max_output_tokens': 4096
                 }
             )
-            st.sidebar.success("✅ AI Model: gemini-1.5-flash")
             return model
         except Exception as e:
-            st.sidebar.warning(f"⚠️ AI Model fallback: {e}")
             return None
     
     def convene_board(self, asset: str, directive: str, market_data: Dict) -> BoardDirective:
         self.directive_counter += 1
         directive_id = f"SFC-{datetime.now().strftime('%Y%m%d')}-{self.directive_counter:04d}"
         
-        st.info("🏛️ **BOARD IN SESSION** - Governors convening...")
-        
         governor_votes = []
-        
-        st.markdown("### 📊 GOVERNOR DELIBERATIONS")
         
         progress = st.progress(0)
         governors_list = list(self.governors.items())
@@ -616,7 +610,7 @@ class SovereignBoardOfGovernors:
                            directive: str, market_data: Dict) -> BoardVote:
         
         prompt = f"""
-        You are {gov_info['title']} at Sovereign Fund Capital.
+        You are {gov_info['title']} at Sovereign Fund Capital, a private hedge fund.
         
         BACKGROUND: {gov_info['background']}
         EXPERTISE: {gov_info['expertise']}
@@ -1038,10 +1032,10 @@ def render_board_room():
     st.markdown("### 🏛️ BOARD OF GOVERNORS")
     st.markdown("*Federal Reserve Model - Seven Specialized Governors + Chairman Osinachi*")
     
-    board = st.session_state.board
+    governors = st.session_state.board.governors
     cols = st.columns(4)
     
-    for i, (gov_id, gov) in enumerate(board.governors.items()):
+    for i, (gov_id, gov) in enumerate(governors.items()):
         with cols[i % 4]:
             is_chairman = gov_id == "CHAIRMAN_OSINACHI"
             border = "2px solid #C8A84E" if is_chairman else "1px solid #222"
