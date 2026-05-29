@@ -182,6 +182,55 @@ st.markdown("""
     color: #666;
 }
 
+/* ─── LIVE TICKER STRIP ─── */
+.ticker-strip {
+    background: #050505;
+    border-top: 1px solid #1A1A1A;
+    border-bottom: 1px solid #1A1A1A;
+    padding: 10px 0;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.ticker-item {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 4px 24px;
+    border-right: 1px solid #1A1A1A;
+}
+
+.ticker-sym {
+    color: #C8A84E;
+    font-weight: 600;
+    margin-right: 6px;
+}
+
+.ticker-price {
+    color: #FFF;
+    margin-right: 4px;
+}
+
+.ticker-up   { color: #00C853; }
+.ticker-down { color: #FF1744; }
+.ticker-flat { color: #888; }
+
+/* ─── PRICE GRID ON SIDEBAR ─── */
+.price-card {
+    background: #0D0D0D;
+    border: 1px solid #1A1A1A;
+    border-radius: 3px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.price-card-sym  { color: #C8A84E; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 600; }
+.price-card-val  { color: #FFF;    font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+.price-card-chg  { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; }
+
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: #000; }
 ::-webkit-scrollbar-thumb { background: #222; }
@@ -327,12 +376,11 @@ class InstitutionalDataEngine:
         self.lock = threading.Lock()
         
     def fetch_institutional_data(self, symbol: str) -> Dict:
-        cache_key = f"{symbol}_{datetime.now().strftime('%Y%m%d_%H')}"
+        cache_key = f"{symbol}_{datetime.now().strftime('%Y%m%d_%H%M')}"
         
         with self.lock:
-            if cache_key in self.cache:
-                cached_time, data = self.cache[cache_key]
-                if datetime.now() - cached_time < self.cache_ttl:
+            for key, (cached_time, data) in list(self.cache.items()):
+                if symbol in key and datetime.now() - cached_time < self.cache_ttl:
                     return data
         
         try:
@@ -374,6 +422,21 @@ class InstitutionalDataEngine:
         except Exception as e:
             return self._generate_synthetic_data(symbol)
     
+    def fetch_live_price(self, symbol: str) -> Dict:
+        """Lightweight live price fetch — returns price + 1d change only."""
+        try:
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(period="2d", interval="1d")
+            if hist.empty:
+                return {'price': 0.0, 'change_1d': 0.0}
+            price = hist['Close'].iloc[-1]
+            change = 0.0
+            if len(hist) > 1:
+                change = round(((hist['Close'].iloc[-1] - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100, 2)
+            return {'price': round(price, 4), 'change_1d': change}
+        except:
+            return {'price': 0.0, 'change_1d': 0.0}
+
     def _analyze_volume_trend(self, volume: pd.Series) -> str:
         try:
             vol_ma = volume.rolling(20).mean()
@@ -478,7 +541,94 @@ class InstitutionalDataEngine:
         }
 
 # ============================================
-# SOVEREIGN BOARD OF GOVERNORS
+# LIVE PRICE TICKER (rendered HTML)
+# ============================================
+
+TICKER_SYMBOLS = [
+    ("XAUUSD", "GC=F",      "Gold"),
+    ("XAGUSD", "SI=F",      "Silver"),
+    ("BTCUSD", "BTC-USD",   "Bitcoin"),
+    ("SPX",    "ES=F",      "S&P 500"),
+    ("NDX",    "NQ=F",      "NASDAQ"),
+    ("USOIL",  "CL=F",      "Crude Oil"),
+    ("EURUSD", "EURUSD=X",  "EUR/USD"),
+    ("USDJPY", "USDJPY=X",  "USD/JPY"),
+    ("GBPUSD", "GBPUSD=X",  "GBP/USD"),
+    ("ETHUSD", "ETH-USD",   "Ethereum"),
+]
+
+def fetch_ticker_prices(engine: InstitutionalDataEngine) -> List[Dict]:
+    results = []
+    for name, sym, label in TICKER_SYMBOLS:
+        d = engine.fetch_live_price(sym)
+        results.append({
+            'name': name,
+            'label': label,
+            'price': d['price'],
+            'change': d['change_1d'],
+        })
+    return results
+
+def render_live_ticker(engine: InstitutionalDataEngine):
+    """Renders the scrolling price ticker strip below the header."""
+    prices = fetch_ticker_prices(engine)
+    
+    items_html = ""
+    for p in prices:
+        chg = p['change']
+        chg_class = "ticker-up" if chg > 0 else "ticker-down" if chg < 0 else "ticker-flat"
+        arrow = "▲" if chg > 0 else "▼" if chg < 0 else "●"
+        
+        # Format price sensibly
+        raw = p['price']
+        if raw >= 1000:
+            fmt_price = f"{raw:,.2f}"
+        elif raw >= 1:
+            fmt_price = f"{raw:.4f}"
+        else:
+            fmt_price = f"{raw:.6f}"
+        
+        items_html += f"""
+            <span class="ticker-item">
+                <span class="ticker-sym">{p['name']}</span>
+                <span class="ticker-price">{fmt_price}</span>
+                <span class="{chg_class}">{arrow}{abs(chg):.2f}%</span>
+            </span>
+        """
+    
+    st.markdown(f"""
+        <div class="ticker-strip">
+            {items_html}
+        </div>
+    """, unsafe_allow_html=True)
+
+def render_sidebar_prices(engine: InstitutionalDataEngine):
+    """Renders compact price cards in the sidebar."""
+    prices = fetch_ticker_prices(engine)
+    cards_html = ""
+    for p in prices:
+        chg = p['change']
+        chg_class = "ticker-up" if chg > 0 else "ticker-down" if chg < 0 else "ticker-flat"
+        arrow = "▲" if chg > 0 else "▼" if chg < 0 else "—"
+        raw = p['price']
+        if raw >= 1000:
+            fmt_price = f"{raw:,.2f}"
+        elif raw >= 1:
+            fmt_price = f"{raw:.4f}"
+        else:
+            fmt_price = f"{raw:.6f}"
+        
+        cards_html += f"""
+            <div class="price-card">
+                <span class="price-card-sym">{p['name']}</span>
+                <span class="price-card-val">{fmt_price}</span>
+                <span class="price-card-chg {chg_class}">{arrow}{abs(chg):.2f}%</span>
+            </div>
+        """
+    st.markdown(cards_html, unsafe_allow_html=True)
+
+# ============================================
+# SOVEREIGN BOARD OF GOVERNORS  ← UPGRADED
 # ============================================
 
 class SovereignBoardOfGovernors:
@@ -487,6 +637,7 @@ class SovereignBoardOfGovernors:
         self.vote_history = deque(maxlen=500)
         self.directive_counter = 0
         
+        # ── UPGRADED GOVERNOR PROFILES ──────────────────────────────────
         self.governors = {
             "CHAIRMAN_OSINACHI": {
                 "id": "CHAIRMAN_OSINACHI",
@@ -494,58 +645,135 @@ class SovereignBoardOfGovernors:
                 "role": "Chief Investment Officer",
                 "expertise": "Portfolio Strategy, Risk Management, Final Authority",
                 "weight": 0.25,
-                "background": "Former Federal Reserve Governor (12 years). PhD Economics, MIT. Managed $50B+ institutional AUM."
+                "background": (
+                    "Former Federal Reserve Governor (12 years), PhD Economics MIT. "
+                    "Managed $50B+ institutional AUM across multiple market cycles. "
+                    "Led crisis response during 2008 and 2020 market dislocations. "
+                    "Known for synthesizing conflicting board views into decisive, capital-preserving directives. "
+                    "Believes deeply in asymmetric risk/reward — will never approve a trade where the RR is below 2:1."
+                ),
+                "decision_philosophy": (
+                    "Capital preservation is the first law. Conviction without edge is gambling. "
+                    "When board consensus is fractured, default to HOLD — the market will present clarity. "
+                    "Position sizing is the most powerful tool a trader has. Risk the minimum, extract the maximum."
+                ),
             },
             "GOVERNOR_MACRO": {
                 "id": "GOVERNOR_MACRO",
                 "title": "Governor of Macro Strategy",
                 "role": "Head of Global Macro",
-                "expertise": "Central Bank Policy, Yield Curve Analysis, Global Capital Flows",
+                "expertise": "Central Bank Policy, Yield Curve Analysis, Global Capital Flows, DXY Correlation",
                 "weight": 0.15,
-                "background": "Ex-IMF Chief Economist. 20 years central bank advisory. PhD Monetary Economics, LSE."
+                "background": (
+                    "Ex-IMF Chief Economist, 20 years advising G20 central banks. PhD Monetary Economics, LSE. "
+                    "Constructed the macro overlay framework used by three sovereign wealth funds. "
+                    "Specialist in USD liquidity cycles, gold-rate correlations, and Fed pivot timing. "
+                    "Has accurately called every major macro regime shift since 2005."
+                ),
+                "decision_philosophy": (
+                    "All price is downstream of liquidity. Before any trade, ask: is the macro regime aligned? "
+                    "A technically perfect setup in a hostile macro environment is a trap. "
+                    "DXY strength crushes gold; Fed dovishness is the most powerful tailwind gold can have."
+                ),
             },
             "GOVERNOR_FLOW": {
                 "id": "GOVERNOR_FLOW",
                 "title": "Governor of Order Flow",
                 "role": "Head of Order Flow Intelligence",
-                "expertise": "Dark Pool Analysis, CME Positioning, Smart Money Tracking",
+                "expertise": "Dark Pool Analysis, COT Positioning, Smart Money Footprints, Institutional Accumulation",
                 "weight": 0.15,
-                "background": "Former Goldman Sachs Partner. 25 years institutional flow trading."
+                "background": (
+                    "Former Goldman Sachs Partner and Head of Commodities Desk (25 years). "
+                    "Pioneered dark pool tracking methodologies now used industry-wide. "
+                    "Reads COT reports as primary signal — commercials vs. non-commercials positioning tells the real story. "
+                    "Expert at identifying institutional absorption zones, stop hunts, and engineered liquidity sweeps."
+                ),
+                "decision_philosophy": (
+                    "Price is manipulation. What matters is who is accumulating and who is distributing. "
+                    "If commercials are net long while retail is net short, that is the setup. "
+                    "A sweep of sell-side liquidity followed by a strong reclaim is the highest probability entry."
+                ),
             },
             "GOVERNOR_QUANT": {
                 "id": "GOVERNOR_QUANT",
                 "title": "Governor of Quantitative Strategy",
                 "role": "Chief Quantitative Officer",
-                "expertise": "Statistical Arbitrage, Machine Learning, Probability Theory",
+                "expertise": "Statistical Edge, Probability Models, Regime Detection, Volatility Forecasting",
                 "weight": 0.15,
-                "background": "PhD Mathematical Finance, Stanford. Ex-Renaissance Technologies. 15+ years alpha generation."
+                "background": (
+                    "PhD Mathematical Finance, Stanford. Former Renaissance Technologies portfolio manager. "
+                    "Built volatility forecasting models deployed across $15B+ in AUM. "
+                    "Specialist in regime-detection algorithms — knows when a market is trending vs. mean-reverting. "
+                    "Quantifies conviction using Bayesian probability updates on live data."
+                ),
+                "decision_philosophy": (
+                    "Every trade is a probability distribution. My job is to identify when edge exceeds friction. "
+                    "ATR-normalized targets, regime-adjusted position sizing, and expectancy-positive setups only. "
+                    "If the math does not support the trade, no amount of narrative conviction justifies it."
+                ),
             },
             "GOVERNOR_RISK": {
                 "id": "GOVERNOR_RISK",
                 "title": "Governor of Risk Management",
                 "role": "Chief Risk Officer",
-                "expertise": "VaR Modeling, Tail Risk, Black Swan Protection",
+                "expertise": "VaR Modeling, Tail Risk, Drawdown Control, Correlation Risk, Black Swan Protocols",
                 "weight": 0.15,
-                "background": "Former Fed Risk Supervisor. Basel Committee Advisor. 20 years systemic risk management."
+                "background": (
+                    "Former Fed Risk Supervisor and Basel Committee Advisor. "
+                    "Designed the systemic risk framework used by four major central banks. "
+                    "Specialized in non-linear risk: scenarios where losses compound. "
+                    "Has veto power over any directive that threatens more than 2% peak-to-valley drawdown. "
+                    "Survived the 1998, 2008, and 2020 crises by identifying correlated risk before it cascaded."
+                ),
+                "decision_philosophy": (
+                    "Risk is not a number — it is a story about what can go wrong. "
+                    "The most dangerous moment is when everything seems to be working. "
+                    "Never trade without knowing your maximum pain point. If a stop is ambiguous, the trade is off."
+                ),
             },
-            "GOVERNOR_INTEL": {
-                "id": "GOVERNOR_INTEL",
-                "title": "Governor of Market Intelligence",
-                "role": "Director of Intelligence",
-                "expertise": "Geopolitical Risk, Insider Activity, Non-Public Information",
+            "GOVERNOR_SMC": {
+                "id": "GOVERNOR_SMC",
+                "title": "Governor of Smart Money Concepts",
+                "role": "Head of Institutional Technical Analysis",
+                "expertise": "Order Blocks, Fair Value Gaps, Break of Structure, Liquidity Sweeps, ICT Framework",
                 "weight": 0.10,
-                "background": "Former CIA Economic Intelligence. 15 years tracking sovereign wealth flows."
+                "background": (
+                    "Trained under the Inner Circle Trader (ICT) methodology for 15 years. "
+                    "Specialist in multi-timeframe Smart Money Concepts — reads the weekly draw on liquidity, "
+                    "then executes on H1 and H4 order blocks. Expert at identifying manipulation candles, "
+                    "Judas swings, and institutional entry models (OTE, NWOG, NDOG). "
+                    "Has traded exclusively with limit orders from order blocks for a decade."
+                ),
+                "decision_philosophy": (
+                    "Price always seeks liquidity. Identify where resting buy stops and sell stops are pooled, "
+                    "then anticipate the institutional sweep before the true directional move. "
+                    "The weekly chart determines the draw. The H4 chart identifies the order block. The H1 is the entry. "
+                    "Never enter mid-range — only from premium or discount arrays."
+                ),
             },
             "GOVERNOR_EXECUTION": {
                 "id": "GOVERNOR_EXECUTION",
                 "title": "Governor of Trading Operations",
                 "role": "Head of Execution",
-                "expertise": "Order Execution, Slippage Control, Market Microstructure",
+                "expertise": "Order Execution, Slippage Control, Limit Order Strategy, MT5 Execution Protocol",
                 "weight": 0.05,
-                "background": "Ex-Jump Trading, Citadel Execution. 20 years HFT and institutional execution."
-            }
+                "background": (
+                    "Ex-Jump Trading and Citadel Execution. 20 years HFT and institutional execution. "
+                    "Specialist in limit order placement, partial fill management, and slippage minimization. "
+                    "Expert in MT5 execution mechanics — knows exact order types, pending order invalidation, "
+                    "and how to size positions correctly given prop firm risk parameters. "
+                    "Has never accepted a market order for a directional position."
+                ),
+                "decision_philosophy": (
+                    "Execution is where edge is either preserved or destroyed. "
+                    "A limit order at the exact order block is 10x better than a market order 5 points away. "
+                    "On MT5: use buy limit / sell limit for OB entries. "
+                    "Always define lot size before placement — never adjust after entry."
+                ),
+            },
         }
-    
+        # ─────────────────────────────────────────────────────────────────
+
     def _initialize_model(self):
         try:
             model = genai.GenerativeModel(
@@ -609,25 +837,39 @@ class SovereignBoardOfGovernors:
     def _get_governor_vote(self, gov_id: str, gov_info: Dict, asset: str, 
                            directive: str, market_data: Dict) -> BoardVote:
         
-        prompt = f"""
-        You are {gov_info['title']} at Sovereign Fund Capital, a private hedge fund.
+        decision_philosophy = gov_info.get('decision_philosophy', '')
         
-        BACKGROUND: {gov_info['background']}
-        EXPERTISE: {gov_info['expertise']}
-        
-        You are voting on: {directive}
-        Asset: {asset}
-        
-        MARKET DATA:
-        {json.dumps(market_data, indent=2)}
-        
-        Provide your analysis and vote. Format exactly:
-        VOTE: [BUY/SELL/HOLD]
-        CONVICTION: [1-10]
-        RATIONALE: [2-3 sentences from your expertise perspective]
-        RISK: [Key risk concern]
-        CONDITIONS: [Any conditions for your vote]
-        """
+        prompt = f"""You are {gov_info['title']} at Sovereign Fund Capital, an elite private hedge fund.
+
+CREDENTIALS & BACKGROUND:
+{gov_info['background']}
+
+YOUR DECISION PHILOSOPHY:
+{decision_philosophy}
+
+YOUR EXPERTISE: {gov_info['expertise']}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BOARD DIRECTIVE UNDER REVIEW: {directive}
+ASSET: {asset}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LIVE MARKET DATA:
+{json.dumps(market_data, indent=2)}
+
+INSTRUCTIONS:
+Analyse this directive strictly through the lens of YOUR expertise and philosophy.
+Be direct, specific, and institutionally rigorous. Do NOT give generic analysis.
+Reference the actual market data numbers in your rationale.
+If you have concerns about the setup, state them with precision.
+
+FORMAT (respond EXACTLY as shown — no extra text):
+VOTE: [BUY/SELL/HOLD]
+CONVICTION: [1-10]
+RATIONALE: [3-4 sentences from YOUR specific expertise — cite actual data points]
+RISK: [The single most important risk THIS specific setup carries from YOUR domain]
+CONDITIONS: [Specific conditions that would change your vote — be precise]
+"""
         
         try:
             if self.model:
@@ -662,46 +904,65 @@ class SovereignBoardOfGovernors:
         sell_votes = sum(1 for v in votes if v.signal == SignalType.SELL)
         hold_votes = sum(1 for v in votes if v.signal == SignalType.HOLD)
         avg_conviction = np.mean([v.conviction.value for v in votes]) if votes else 5
+
+        chairman = self.governors["CHAIRMAN_OSINACHI"]
         
-        prompt = f"""
-        You are CHAIRMAN OSINACHI, CIO of Sovereign Fund Capital.
-        
-        CREDENTIALS:
-        - Former Federal Reserve Governor (12 years)
-        - PhD Economics, MIT
-        - 30 years institutional investment experience
-        - Managed $50B+ institutional portfolios
-        
-        BOARD VOTE TALLY:
-        - BUY: {buy_votes}, SELL: {sell_votes}, HOLD: {hold_votes}
-        - Average Conviction: {avg_conviction:.1f}/10
-        
-        ASSET: {asset}
-        DIRECTIVE: {directive}
-        
-        MARKET DATA:
-        {json.dumps(market_data, indent=2)}
-        
-        VOTES:
-        {json.dumps([{'role': v.governor_role, 'vote': v.signal.value, 'conviction': v.conviction.value, 'rationale': v.rationale[:100]} for v in votes], indent=2)}
-        
-        Current AUM: DNA Fund $4,995 | Sure Leverage $4,968
-        Objective: Grow to multi-billion dollar fund
-        Maximum risk: 1% per trade
-        
-        DELIVER YOUR FINAL VERDICT:
-        SIGNAL: [BUY/SELL/HOLD]
-        CONVICTION: [1-10]
-        ENTRY_ZONE_LOW: [price]
-        ENTRY_ZONE_HIGH: [price]
-        STOP_LOSS: [price]
-        TARGET_1: [price]
-        TARGET_2: [price]
-        POSITION_SIZE: [0.1-1.0% of AUM]
-        TIMEFRAME: [SCALP/INTRADAY/SWING/POSITION/INVESTMENT]
-        RATIONALE: [Your reasoning]
-        RISK_NOTE: [Key risk consideration]
-        """
+        prompt = f"""You are CHAIRMAN OSINACHI, CIO of Sovereign Fund Capital.
+
+CREDENTIALS:
+{chairman['background']}
+
+YOUR DECISION PHILOSOPHY:
+{chairman['decision_philosophy']}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BOARD VOTE TALLY:
+  BUY: {buy_votes}  |  SELL: {sell_votes}  |  HOLD: {hold_votes}
+  Average Conviction: {avg_conviction:.1f}/10
+
+ASSET: {asset}
+DIRECTIVE: {directive}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LIVE MARKET DATA:
+{json.dumps(market_data, indent=2)}
+
+BOARD VOTES SUMMARY:
+{json.dumps([{
+    'role': v.governor_role,
+    'vote': v.signal.value,
+    'conviction': v.conviction.value,
+    'rationale': v.rationale[:150],
+    'risk': v.risk_assessment[:100]
+} for v in votes], indent=2)}
+
+FUND PARAMETERS:
+  AUM: DNA Fund $4,995 | Sure Leverage $4,968 | Total: $9,963
+  Max Risk Per Trade: 1% of account
+  Order Type: Limit orders only (no market orders)
+  Style: SMC / Institutional order block entries
+  Objective: Disciplined growth toward multi-million dollar fund
+
+YOUR TASK:
+As Chairman, synthesize all board perspectives into ONE final directive.
+You must weigh macro alignment, SMC structure, risk parameters, and order flow.
+If the board is fractured or data is ambiguous, defend a HOLD with conviction.
+Your entry/exit levels must be PRECISE and reference actual price data above.
+Ensure RR is minimum 2:1. Never recommend >1% risk.
+
+FORMAT (respond EXACTLY as shown):
+SIGNAL: [BUY/SELL/HOLD]
+CONVICTION: [1-10]
+ENTRY_ZONE_LOW: [specific price]
+ENTRY_ZONE_HIGH: [specific price]
+STOP_LOSS: [specific price]
+TARGET_1: [specific price]
+TARGET_2: [specific price]
+POSITION_SIZE: [0.1 to 1.0 — percent of per-account AUM]
+TIMEFRAME: [SCALP/INTRADAY/SWING/POSITION/INVESTMENT]
+RATIONALE: [4-5 sentences — reference board votes, cite data, explain decision with Chairman authority]
+RISK_NOTE: [The most critical risk the fund faces on this specific trade]
+"""
         
         try:
             if self.model:
@@ -985,6 +1246,14 @@ def main():
         st.metric("Total AUM", "$9,963", "🎯 Target: $1B+")
         
         st.divider()
+
+        # ── LIVE PRICES IN SIDEBAR ───────────────────────────────────────
+        st.markdown("### 📡 LIVE MARKET PRICES")
+        with st.spinner("Fetching live prices..."):
+            render_sidebar_prices(st.session_state.data_engine)
+        # ─────────────────────────────────────────────────────────────────
+
+        st.divider()
         
         st.markdown("### 📋 DIRECTIVES")
         page = st.radio(
@@ -1014,6 +1283,11 @@ def main():
         </p>
     """, unsafe_allow_html=True)
     
+    # ── LIVE TICKER STRIP BELOW HEADER ──────────────────────────────────
+    with st.spinner("Loading live prices..."):
+        render_live_ticker(st.session_state.data_engine)
+    # ─────────────────────────────────────────────────────────────────────
+
     st.divider()
     
     # ============================================
@@ -1030,7 +1304,7 @@ def main():
 
 def render_board_room():
     st.markdown("### 🏛️ BOARD OF GOVERNORS")
-    st.markdown("*Federal Reserve Model - Seven Specialized Governors + Chairman Osinachi*")
+    st.markdown("*Federal Reserve Model — Seven Specialized Governors + Chairman Osinachi*")
     
     governors = st.session_state.board.governors
     cols = st.columns(4)
@@ -1042,7 +1316,7 @@ def render_board_room():
             bg_color = "#C8A84E" if is_chairman else "#444"
             weight_pct = gov['weight'] * 100
             role_prefix = "👑 " if is_chairman else ""
-            expertise_short = gov['expertise'][:50]
+            expertise_short = gov['expertise'][:55]
             font_size = "1rem" if is_chairman else "0.9rem"
             
             card_html = f"""
@@ -1068,7 +1342,7 @@ def render_board_room():
     with col1:
         directive_text = st.text_area(
             "Presidential Directive:",
-            placeholder="Example: 'Analyze XAUUSD for a strategic long position. Current price showing institutional accumulation. Request full board analysis with entry, exit, and risk parameters.'",
+            placeholder="Example: 'Analyse XAUUSD for a strategic long position. Price is approaching a key H4 order block after sweeping sell-side liquidity below last week's low. Request full board analysis with entry, exit, and risk parameters.'",
             height=100,
             key="board_directive"
         )
@@ -1182,9 +1456,9 @@ def render_trading_terminal():
             st.metric("Position Size", f"{pos_size:.4f} units")
             st.metric("Notional", f"${pos_size * entry:,.2f}")
     
-    if st.button("🔍 ANALYZE WITH BOARD", use_container_width=True):
+    if st.button("🔍 ANALYSE WITH BOARD", use_container_width=True):
         if entry > 0:
-            with st.spinner("Board analyzing..."):
+            with st.spinner("Board analysing..."):
                 symbol_map = {
                     "XAUUSD": "GC=F", "BTCUSD": "BTC-USD", "SPX500": "ES=F",
                     "USOIL": "CL=F", "EURUSD": "EURUSD=X", "USDJPY": "USDJPY=X"
@@ -1194,7 +1468,7 @@ def render_trading_terminal():
                 market_data = st.session_state.data_engine.fetch_institutional_data(symbol)
                 
                 if market_data:
-                    directive_text = f"Analyze {asset} for {direction} position. Entry: {entry}, Stop: {stop}, Target: {target}"
+                    directive_text = f"Analyse {asset} for {direction} position. Entry: {entry}, Stop: {stop}, Target: {target}"
                     directive = st.session_state.board.convene_board(
                         asset, directive_text, market_data
                     )
@@ -1295,7 +1569,7 @@ def display_board_directive(directive: BoardDirective):
             <div class="param-grid">
                 <div class="param-item">
                     <div class="param-label">Entry Zone</div>
-                    <div class="param-value">${directive.entry_zone[0]:.2f} - ${directive.entry_zone[1]:.2f}</div>
+                    <div class="param-value">${directive.entry_zone[0]:.2f} — ${directive.entry_zone[1]:.2f}</div>
                 </div>
                 <div class="param-item">
                     <div class="param-label">Stop Loss</div>
