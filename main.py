@@ -6,13 +6,12 @@ import numpy as np
 from datetime import datetime, timedelta
 import pytz
 import google.generativeai as genai
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple
 import json
 from dataclasses import dataclass, field
 from enum import Enum
 import warnings
 import time
-import hashlib
 from collections import deque
 import threading
 warnings.filterwarnings('ignore')
@@ -33,39 +32,25 @@ st.set_page_config(
 )
 
 # ============================================
-# INSTITUTIONAL STYLING - WORLD CLASS UI
+# INSTITUTIONAL STYLING
 # ============================================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-:root {
-    --gold: #C8A84E;
-    --gold-light: #D4AF37;
-    --dark-bg: #0A0A0A;
-    --card-bg: #111111;
-    --border: #1A1A1A;
-    --text: #E0E0E0;
-    --text-dim: #888888;
-    --success: #00C853;
-    --danger: #FF1744;
-    --warning: #FFD600;
-}
-
 .stApp {
-    background: var(--dark-bg);
-    color: var(--text);
+    background: linear-gradient(135deg, #0a0a0a 0%, #000000 100%);
+    color: #e0e0e0;
 }
 
-/* Institutional Typography */
 .institutional-header {
     font-family: 'Cormorant Garamond', serif;
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: var(--gold);
+    color: #C8A84E;
     text-align: center;
-    border-bottom: 1px solid var(--gold);
+    border-bottom: 1px solid #C8A84E;
     padding-bottom: 20px;
     margin-bottom: 20px;
 }
@@ -84,7 +69,6 @@ st.markdown("""
     padding: 2px 8px;
 }
 
-/* Board Member Cards */
 .governor-card {
     background: linear-gradient(145deg, #0D0D0D, #1A1A1A);
     border: 1px solid #222;
@@ -95,19 +79,14 @@ st.markdown("""
 }
 
 .governor-card:hover {
-    border-color: var(--gold);
+    border-color: #C8A84E;
     box-shadow: 0 4px 20px rgba(200, 168, 78, 0.1);
-}
-
-.governor-card.chairman {
-    border: 2px solid var(--gold);
-    background: linear-gradient(145deg, #111, #1A1A1A);
 }
 
 .governor-role {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.1rem;
-    color: var(--gold);
+    color: #C8A84E;
     font-weight: 600;
     letter-spacing: 1px;
 }
@@ -120,27 +99,13 @@ st.markdown("""
     text-transform: uppercase;
 }
 
-/* Decision Cards */
 .board-directive {
     background: #000;
-    border: 1px solid var(--gold);
+    border: 1px solid #C8A84E;
     padding: 30px;
     border-radius: 4px;
     position: relative;
     margin: 20px 0;
-}
-
-.board-directive::before {
-    content: 'BOARD DIRECTIVE';
-    position: absolute;
-    top: -10px;
-    left: 20px;
-    background: #000;
-    color: var(--gold);
-    padding: 0 10px;
-    font-size: 0.7rem;
-    letter-spacing: 3px;
-    font-family: 'JetBrains Mono', monospace;
 }
 
 .decision-banner {
@@ -152,21 +117,19 @@ st.markdown("""
     font-family: 'Cormorant Garamond', serif;
 }
 
-.decision-banner.buy { border-color: #00C853; background: rgba(0,200,83,0.05); }
-.decision-banner.sell { border-color: #FF1744; background: rgba(255,23,68,0.05); }
-.decision-banner.hold { border-color: #FFD600; background: rgba(255,214,0,0.05); }
-
-/* Institutional Data Feed */
-.data-feed {
-    background: #050505;
-    border-left: 3px solid var(--gold);
-    padding: 15px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    color: #666;
+.decision-banner.buy { 
+    border-color: #00C853; 
+    background: rgba(0,200,83,0.05); 
+}
+.decision-banner.sell { 
+    border-color: #FF1744; 
+    background: rgba(255,23,68,0.05); 
+}
+.decision-banner.hold { 
+    border-color: #FFD600; 
+    background: rgba(255,214,0,0.05); 
 }
 
-/* Trading Parameters */
 .param-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -195,7 +158,6 @@ st.markdown("""
     font-weight: 600;
 }
 
-/* Buttons */
 .stButton > button {
     font-family: 'Inter', sans-serif;
     letter-spacing: 2px;
@@ -204,25 +166,27 @@ st.markdown("""
     border-radius: 2px;
     padding: 15px 30px;
     transition: all 0.3s ease;
+    width: 100%;
 }
 
-.stButton > button.primary {
-    background: var(--gold);
-    color: #000;
-    border: none;
+.stButton > button:hover {
+    border-color: #C8A84E;
 }
 
-.stButton > button.primary:hover {
-    background: var(--gold-light);
+.data-feed {
+    background: #050505;
+    border-left: 3px solid #C8A84E;
+    padding: 15px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: #666;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: #000; }
 ::-webkit-scrollbar-thumb { background: #222; }
-::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+::-webkit-scrollbar-thumb:hover { background: #C8A84E; }
 
-/* Animations */
 @keyframes scan {
     0% { opacity: 0.3; }
     50% { opacity: 1; }
@@ -230,23 +194,11 @@ st.markdown("""
 }
 
 .scanning { animation: scan 2s infinite; }
-
-/* Confidential watermark */
-.confidential-watermark {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-45deg);
-    font-size: 8rem;
-    color: rgba(200, 168, 78, 0.02);
-    pointer-events: none;
-    z-index: -1;
-    font-family: 'Cormorant Garamond', serif;
-    white-space: nowrap;
-}
 </style>
 
-<div class="confidential-watermark">SOVEREIGN</div>
+<div style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-45deg); 
+     font-size:8rem; color:rgba(200,168,78,0.02); pointer-events:none; z-index:-1; 
+     font-family:'Cormorant Garamond',serif; white-space:nowrap;">SOVEREIGN</div>
 """, unsafe_allow_html=True)
 
 # ============================================
@@ -274,64 +226,7 @@ class TimeFrame(Enum):
     INVESTMENT = "INVESTMENT"
 
 @dataclass
-class InstitutionalIntel:
-    """Non-public institutional intelligence"""
-    dark_pool_prints: Dict
-    block_trade_activity: str
-    gamma_exposure: float
-    option_flow_sentiment: str
-    institutional_positioning: str
-    smart_money_index: float
-    market_maker_positioning: str
-    hedge_fund_consensus: str
-    sovereign_flow: str
-    central_bank_activity: str
-    
-@dataclass
-class MacroAnalysis:
-    """Federal Reserve level macro analysis"""
-    fed_policy_stance: str
-    rate_trajectory: str
-    inflation_outlook: str
-    gdp_growth_forecast: float
-    yield_curve_signal: str
-    liquidity_conditions: str
-    credit_spread_signal: str
-    global_capital_flows: str
-    geopolitical_risk: str
-    dollar_regime: str
-
-@dataclass
-class FundamentalAnalysis:
-    """Institutional fundamental assessment"""
-    fair_value_range: Tuple[float, float]
-    institutional_demand_score: float
-    supply_dynamics: str
-    carry_cost: float
-    correlation_regime: str
-    volatility_regime: str
-    seasonality_factor: float
-    etf_flow_analysis: str
-    cftc_positioning: str
-    breakeven_analysis: Dict
-
-@dataclass
-class TechnicalAnalysis:
-    """Multi-timeframe technical assessment"""
-    primary_trend: str
-    momentum_regime: str
-    volume_profile: str
-    key_support: float
-    key_resistance: float
-    pattern_recognition: str
-    fibonacci_confluence: List[float]
-    market_structure: str
-    order_block_zones: List[Dict]
-    liquidity_levels: Dict
-
-@dataclass
 class BoardVote:
-    """Individual governor vote"""
     governor_id: str
     governor_role: str
     signal: SignalType
@@ -343,7 +238,6 @@ class BoardVote:
 
 @dataclass
 class BoardDirective:
-    """Final board directive - Chairman's verdict"""
     directive_id: str
     asset: str
     signal: SignalType
@@ -365,19 +259,74 @@ class BoardDirective:
     expiry: str
 
 # ============================================
+# TECHNICAL INDICATORS
+# ============================================
+
+class TechnicalIndicators:
+    @staticmethod
+    def calculate_rsi(prices: pd.Series, period: int = 14) -> float:
+        try:
+            delta = prices.diff()
+            gain = delta.where(delta > 0, 0.0).rolling(window=period).mean()
+            loss = (-delta.where(delta < 0, 0.0)).rolling(window=period).mean()
+            rs = gain / loss
+            return round(100 - (100 / (1 + rs.iloc[-1])), 1)
+        except:
+            return 50.0
+    
+    @staticmethod
+    def calculate_macd(prices: pd.Series) -> float:
+        try:
+            ema12 = prices.ewm(span=12).mean()
+            ema26 = prices.ewm(span=26).mean()
+            macd = ema12 - ema26
+            signal = macd.ewm(span=9).mean()
+            return round((macd - signal).iloc[-1], 4)
+        except:
+            return 0.0
+    
+    @staticmethod
+    def calculate_bb_position(prices: pd.Series) -> float:
+        try:
+            sma = prices.rolling(20).mean()
+            std = prices.rolling(20).std()
+            upper = sma + 2 * std
+            lower = sma - 2 * std
+            pos = (prices.iloc[-1] - lower.iloc[-1]) / (upper.iloc[-1] - lower.iloc[-1])
+            return round(pos, 2)
+        except:
+            return 0.5
+    
+    @staticmethod
+    def calculate_atr(high, low, close, period=14) -> float:
+        try:
+            tr1 = high - low
+            tr2 = abs(high - close.shift())
+            tr3 = abs(low - close.shift())
+            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+            return round(tr.rolling(period).mean().iloc[-1], 4)
+        except:
+            return 0.0
+    
+    @staticmethod
+    def calculate_sma(prices: pd.Series, period: int) -> float:
+        try:
+            return round(prices.rolling(window=period).mean().iloc[-1], 2)
+        except:
+            return 0.0
+
+# ============================================
 # INSTITUTIONAL DATA ENGINE
 # ============================================
 
 class InstitutionalDataEngine:
-    """Access institutional-grade market intelligence"""
-    
     def __init__(self):
         self.cache = {}
         self.cache_ttl = timedelta(minutes=2)
+        self.ta = TechnicalIndicators()
         self.lock = threading.Lock()
         
     def fetch_institutional_data(self, symbol: str) -> Dict:
-        """Fetch comprehensive institutional data"""
         cache_key = f"{symbol}_{datetime.now().strftime('%Y%m%d_%H')}"
         
         with self.lock:
@@ -388,10 +337,6 @@ class InstitutionalDataEngine:
         
         try:
             ticker = yf.Ticker(symbol)
-            
-            # Get price data
-            df_1d = ticker.history(period="1d", interval="1m")
-            df_1mo = ticker.history(period="1mo", interval="1h")
             df_6mo = ticker.history(period="6mo", interval="1d")
             
             if df_6mo.empty:
@@ -403,27 +348,24 @@ class InstitutionalDataEngine:
             volume = df_6mo['Volume']
             current_price = close.iloc[-1]
             
-            # Calculate institutional metrics
             data = {
                 'price': round(current_price, 2),
                 'change_1d': round(((close.iloc[-1] - close.iloc[-2]) / close.iloc[-2]) * 100, 2) if len(close) > 1 else 0,
                 'volatility_30d': round(close.pct_change().std() * np.sqrt(252) * 100, 2),
-                'volume_ratio': round(volume.iloc[-1] / volume.mean(), 2),
-                'rsi_14': self._calculate_rsi(close, 14),
-                'macd_histogram': self._calculate_macd(close),
-                'bb_position': self._calculate_bb_position(close),
-                'atr_14': self._calculate_atr(high, low, close, 14),
-                'sma_20': round(close.rolling(20).mean().iloc[-1], 2),
-                'sma_50': round(close.rolling(50).mean().iloc[-1], 2),
-                'sma_200': round(close.rolling(200).mean().iloc[-1], 2) if len(close) >= 200 else round(close.mean(), 2),
+                'volume_ratio': round(volume.iloc[-1] / volume.mean(), 2) if volume.mean() > 0 else 1.0,
+                'rsi_14': self.ta.calculate_rsi(close),
+                'macd_histogram': self.ta.calculate_macd(close),
+                'bb_position': self.ta.calculate_bb_position(close),
+                'atr_14': self.ta.calculate_atr(high, low, close),
+                'sma_20': self.ta.calculate_sma(close, 20),
+                'sma_50': self.ta.calculate_sma(close, 50),
+                'sma_200': self.ta.calculate_sma(close, 200) if len(close) >= 200 else round(close.mean(), 2),
                 'volume_trend': self._analyze_volume_trend(volume),
                 'price_structure': self._analyze_market_structure(close, high, low),
                 'support_resistance': self._find_key_levels(high, low, close),
                 'liquidity_zones': self._identify_liquidity(high, low, volume),
-                'market_profile': self._market_profile_analysis(df_1mo)
             }
             
-            # Cache the result
             with self.lock:
                 self.cache[cache_key] = (datetime.now(), data)
             
@@ -432,124 +374,76 @@ class InstitutionalDataEngine:
         except Exception as e:
             return self._generate_synthetic_data(symbol)
     
-    def _calculate_rsi(self, prices: pd.Series, period: int) -> float:
-        delta = prices.diff()
-        gain = delta.where(delta > 0, 0.0).rolling(period).mean()
-        loss = (-delta.where(delta < 0, 0.0)).rolling(period).mean()
-        rs = gain / loss
-        return round(100 - (100 / (1 + rs.iloc[-1])), 1)
-    
-    def _calculate_macd(self, prices: pd.Series) -> float:
-        ema12 = prices.ewm(span=12).mean()
-        ema26 = prices.ewm(span=26).mean()
-        macd = ema12 - ema26
-        signal = macd.ewm(span=9).mean()
-        return round((macd - signal).iloc[-1], 4)
-    
-    def _calculate_bb_position(self, prices: pd.Series) -> float:
-        sma = prices.rolling(20).mean()
-        std = prices.rolling(20).std()
-        upper = sma + 2 * std
-        lower = sma - 2 * std
-        pos = (prices.iloc[-1] - lower.iloc[-1]) / (upper.iloc[-1] - lower.iloc[-1])
-        return round(pos, 2)
-    
-    def _calculate_atr(self, high, low, close, period) -> float:
-        tr1 = high - low
-        tr2 = abs(high - close.shift())
-        tr3 = abs(low - close.shift())
-        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-        return round(tr.rolling(period).mean().iloc[-1], 4)
-    
     def _analyze_volume_trend(self, volume: pd.Series) -> str:
-        vol_ma = volume.rolling(20).mean()
-        current = volume.iloc[-1]
-        if current > vol_ma.iloc[-1] * 1.5:
-            return "CLIMACTIC"
-        elif current > vol_ma.iloc[-1] * 1.2:
-            return "ELEVATED"
-        elif current < vol_ma.iloc[-1] * 0.5:
-            return "SUBDUED"
-        return "NORMAL"
+        try:
+            vol_ma = volume.rolling(20).mean()
+            current = volume.iloc[-1]
+            if current > vol_ma.iloc[-1] * 1.5:
+                return "CLIMACTIC"
+            elif current > vol_ma.iloc[-1] * 1.2:
+                return "ELEVATED"
+            elif current < vol_ma.iloc[-1] * 0.5:
+                return "SUBDUED"
+            return "NORMAL"
+        except:
+            return "NORMAL"
     
     def _analyze_market_structure(self, close, high, low) -> str:
-        """Analyze market structure (HH/HL or LH/LL)"""
-        highs = high.iloc[-20:]
-        lows = low.iloc[-20:]
-        
-        higher_highs = (highs.diff().dropna() > 0).sum()
-        higher_lows = (lows.diff().dropna() > 0).sum()
-        total = 19
-        
-        if higher_highs > total * 0.6 and higher_lows > total * 0.6:
-            return "BULLISH_STRUCTURE"
-        elif higher_highs < total * 0.4 and higher_lows < total * 0.4:
-            return "BEARISH_STRUCTURE"
-        return "CONSOLIDATION"
+        try:
+            highs = high.iloc[-20:]
+            lows = low.iloc[-20:]
+            higher_highs = (highs.diff().dropna() > 0).sum()
+            higher_lows = (lows.diff().dropna() > 0).sum()
+            total = 19
+            
+            if higher_highs > total * 0.6 and higher_lows > total * 0.6:
+                return "BULLISH_STRUCTURE"
+            elif higher_highs < total * 0.4 and higher_lows < total * 0.4:
+                return "BEARISH_STRUCTURE"
+            return "CONSOLIDATION"
+        except:
+            return "CONSOLIDATION"
     
     def _find_key_levels(self, high, low, close) -> Dict:
-        """Find key support and resistance levels"""
-        recent_high = high.iloc[-20:].max()
-        recent_low = low.iloc[-20:].min()
-        current = close.iloc[-1]
-        
-        return {
-            'resistance_1': round(recent_high, 2),
-            'resistance_2': round(recent_high * 1.02, 2),
-            'pivot': round((recent_high + recent_low + current) / 3, 2),
-            'support_1': round(recent_low, 2),
-            'support_2': round(recent_low * 0.98, 2),
-            'current': round(current, 2)
-        }
+        try:
+            recent_high = high.iloc[-20:].max()
+            recent_low = low.iloc[-20:].min()
+            current = close.iloc[-1]
+            
+            return {
+                'resistance_1': round(recent_high, 2),
+                'resistance_2': round(recent_high * 1.02, 2),
+                'pivot': round((recent_high + recent_low + current) / 3, 2),
+                'support_1': round(recent_low, 2),
+                'support_2': round(recent_low * 0.98, 2),
+                'current': round(current, 2)
+            }
+        except:
+            return {
+                'resistance_1': 0, 'resistance_2': 0,
+                'pivot': 0, 'support_1': 0, 'support_2': 0, 'current': 0
+            }
     
     def _identify_liquidity(self, high, low, volume) -> List[Dict]:
-        """Identify liquidity zones"""
-        vol_profile = pd.DataFrame({
-            'high': high.iloc[-20:],
-            'low': low.iloc[-20:],
-            'volume': volume.iloc[-20:]
-        })
-        
-        high_vol = vol_profile[vol_profile['volume'] > vol_profile['volume'].mean() * 1.5]
-        zones = []
-        for _, row in high_vol.iterrows():
-            zones.append({
-                'level': round((row['high'] + row['low']) / 2, 2),
-                'volume_ratio': round(row['volume'] / vol_profile['volume'].mean(), 2)
+        try:
+            vol_profile = pd.DataFrame({
+                'high': high.iloc[-20:],
+                'low': low.iloc[-20:],
+                'volume': volume.iloc[-20:]
             })
-        return zones[:3]
-    
-    def _market_profile_analysis(self, df) -> Dict:
-        """Basic market profile analysis"""
-        if df.empty:
-            return {'poc': 0, 'value_area': (0, 0)}
-        
-        price_range = pd.cut(df['Close'], bins=10)
-        volume_by_price = df.groupby(price_range)['Volume'].sum()
-        poc_bin = volume_by_price.idxmax()
-        poc = (poc_bin.left + poc_bin.right) / 2
-        
-        total_vol = volume_by_price.sum()
-        cumsum = 0
-        value_high = None
-        value_low = None
-        
-        for bin_range, vol in volume_by_price.items():
-            cumsum += vol
-            if cumsum <= total_vol * 0.7:
-                if value_low is None:
-                    value_low = bin_range.left
-                value_high = bin_range.right
-        
-        return {
-            'poc': round(poc, 2),
-            'value_area_high': round(value_high, 2) if value_high else round(poc * 1.01, 2),
-            'value_area_low': round(value_low, 2) if value_low else round(poc * 0.99, 2)
-        }
+            
+            high_vol = vol_profile[vol_profile['volume'] > vol_profile['volume'].mean() * 1.5]
+            zones = []
+            for _, row in high_vol.iterrows():
+                zones.append({
+                    'level': round((row['high'] + row['low']) / 2, 2),
+                    'volume_ratio': round(row['volume'] / vol_profile['volume'].mean(), 2)
+                })
+            return zones[:3]
+        except:
+            return []
     
     def _generate_synthetic_data(self, symbol: str) -> Dict:
-        """Generate data when real data is unavailable"""
-        # Map common symbols to approximate prices
         price_map = {
             'GC=F': 2350, 'BTC-USD': 68000, 'ES=F': 5250,
             'CL=F': 78, 'EURUSD=X': 1.08, 'USDJPY=X': 156
@@ -581,11 +475,6 @@ class InstitutionalDataEngine:
             'liquidity_zones': [
                 {'level': base_price, 'volume_ratio': 1.5}
             ],
-            'market_profile': {
-                'poc': base_price,
-                'value_area_high': base_price * 1.01,
-                'value_area_low': base_price * 0.99
-            }
         }
 
 # ============================================
@@ -593,22 +482,11 @@ class InstitutionalDataEngine:
 # ============================================
 
 class SovereignBoardOfGovernors:
-    """
-    SOVEREIGN FUND CAPITAL - BOARD OF GOVERNORS
-    Modeled after the Federal Reserve Board of Governors
-    
-    Chairman: Osinachi (Final Decision Authority)
-    
-    Seven Specialized Governors providing institutional-grade analysis
-    with access to non-public information flows.
-    """
-    
     def __init__(self):
         self.model = self._initialize_model()
         self.vote_history = deque(maxlen=500)
         self.directive_counter = 0
         
-        # Board composition - Federal Reserve Model
         self.governors = {
             "CHAIRMAN_OSINACHI": {
                 "id": "CHAIRMAN_OSINACHI",
@@ -616,27 +494,23 @@ class SovereignBoardOfGovernors:
                 "role": "Chief Investment Officer",
                 "expertise": "Portfolio Strategy, Risk Management, Final Authority",
                 "weight": 0.25,
-                "background": "Former Federal Reserve Governor (12 years). PhD Economics, MIT. Managed through 2008, 2020 crises. $50B+ institutional AUM experience.",
-                "personality": "Decisive, analytical, visionary. Known for contrarian calls and impeccable timing.",
-                "vote_power": "FINAL - Override Authority"
+                "background": "Former Federal Reserve Governor (12 years). PhD Economics, MIT. Managed $50B+ institutional AUM."
             },
             "GOVERNOR_MACRO": {
                 "id": "GOVERNOR_MACRO",
-                "title": "Governor of Monetary & Macro Strategy",
+                "title": "Governor of Macro Strategy",
                 "role": "Head of Global Macro",
                 "expertise": "Central Bank Policy, Yield Curve Analysis, Global Capital Flows",
                 "weight": 0.15,
-                "background": "Ex-IMF Chief Economist. 20 years central bank advisory. PhD Monetary Economics, LSE.",
-                "personality": "Data-driven, forward-looking, systematic thinker."
+                "background": "Ex-IMF Chief Economist. 20 years central bank advisory. PhD Monetary Economics, LSE."
             },
             "GOVERNOR_FLOW": {
                 "id": "GOVERNOR_FLOW",
-                "title": "Governor of Institutional Flow & Structure",
+                "title": "Governor of Order Flow",
                 "role": "Head of Order Flow Intelligence",
                 "expertise": "Dark Pool Analysis, CME Positioning, Smart Money Tracking",
                 "weight": 0.15,
-                "background": "Former Goldman Sachs Partner, Head of US Equity Derivatives. 25 years institutional flow trading.",
-                "personality": "Precise, secretive, unmatched pattern recognition. Sees what others don't."
+                "background": "Former Goldman Sachs Partner. 25 years institutional flow trading."
             },
             "GOVERNOR_QUANT": {
                 "id": "GOVERNOR_QUANT",
@@ -644,26 +518,23 @@ class SovereignBoardOfGovernors:
                 "role": "Chief Quantitative Officer",
                 "expertise": "Statistical Arbitrage, Machine Learning, Probability Theory",
                 "weight": 0.15,
-                "background": "PhD Mathematical Finance, Stanford. Ex-Renaissance Technologies, D.E. Shaw. 15+ years alpha generation.",
-                "personality": "Mathematical, rigorous, probability-weighted. Never emotional."
+                "background": "PhD Mathematical Finance, Stanford. Ex-Renaissance Technologies. 15+ years alpha generation."
             },
             "GOVERNOR_RISK": {
                 "id": "GOVERNOR_RISK",
-                "title": "Governor of Risk & Compliance",
+                "title": "Governor of Risk Management",
                 "role": "Chief Risk Officer",
-                "expertise": "VaR Modeling, Tail Risk, Black Swan Protection, Stress Testing",
+                "expertise": "VaR Modeling, Tail Risk, Black Swan Protection",
                 "weight": 0.15,
-                "background": "Former Fed Risk Supervisor. Basel Committee Advisor. 20 years systemic risk management.",
-                "personality": "Conservative, protective, detail-oriented. The voice of caution."
+                "background": "Former Fed Risk Supervisor. Basel Committee Advisor. 20 years systemic risk management."
             },
             "GOVERNOR_INTEL": {
                 "id": "GOVERNOR_INTEL",
                 "title": "Governor of Market Intelligence",
                 "role": "Director of Intelligence",
-                "expertise": "Geopolitical Risk, Insider Activity, Non-Public Information Analysis",
+                "expertise": "Geopolitical Risk, Insider Activity, Non-Public Information",
                 "weight": 0.10,
-                "background": "Former CIA Economic Intelligence. 15 years tracking sovereign wealth flows and central bank activity.",
-                "personality": "Paranoid, connected, always sees the hidden hand. Nothing escapes notice."
+                "background": "Former CIA Economic Intelligence. 15 years tracking sovereign wealth flows."
             },
             "GOVERNOR_EXECUTION": {
                 "id": "GOVERNOR_EXECUTION",
@@ -671,13 +542,11 @@ class SovereignBoardOfGovernors:
                 "role": "Head of Execution",
                 "expertise": "Order Execution, Slippage Control, Market Microstructure",
                 "weight": 0.05,
-                "background": "Ex-Jump Trading, Citadel Execution. 20 years HFT and institutional execution.",
-                "personality": "Technical, precise, execution-obsessed. Every tick matters."
+                "background": "Ex-Jump Trading, Citadel Execution. 20 years HFT and institutional execution."
             }
         }
     
     def _initialize_model(self):
-        """Initialize Gemini model"""
         try:
             model = genai.GenerativeModel(
                 'gemini-1.5-flash',
@@ -688,118 +557,69 @@ class SovereignBoardOfGovernors:
                     'max_output_tokens': 4096
                 }
             )
+            st.sidebar.success("✅ AI Model: gemini-1.5-flash")
             return model
         except Exception as e:
-            st.error(f"Model initialization failed: {e}")
+            st.sidebar.warning(f"⚠️ AI Model fallback: {e}")
             return None
     
     def convene_board(self, asset: str, directive: str, market_data: Dict) -> BoardDirective:
-        """
-        Convene full board meeting.
-        Each governor provides institutional-grade analysis.
-        Chairman Osinachi makes final decision.
-        """
-        
         self.directive_counter += 1
         directive_id = f"SFC-{datetime.now().strftime('%Y%m%d')}-{self.directive_counter:04d}"
         
         st.info("🏛️ **BOARD IN SESSION** - Governors convening...")
         
-        # Phase 1: Gather Intelligence
-        with st.spinner("📡 GATHERING INSTITUTIONAL INTELLIGENCE..."):
-            intel = self._gather_intelligence(asset, market_data)
-        
-        # Phase 2: Individual Governor Analysis
         governor_votes = []
-        analyses_container = st.container()
         
-        with analyses_container:
-            st.markdown("### 📊 GOVERNOR DELIBERATIONS")
-            
-            progress = st.progress(0)
-            governors_list = list(self.governors.items())
-            
-            for idx, (gov_id, gov_info) in enumerate(governors_list):
-                if gov_id == "CHAIRMAN_OSINACHI":
-                    continue  # Chairman votes last
-                
-                progress.progress((idx + 1) / len(governors_list))
-                
-                with st.expander(f"🎓 **{gov_info['title']}** - {gov_info['role']}", expanded=(idx < 2)):
-                    vote = self._get_governor_vote(gov_id, gov_info, asset, directive, market_data, intel)
-                    governor_votes.append(vote)
-                    
-                    # Display governor analysis
-                    signal_color = "#00C853" if vote.signal == SignalType.BUY else "#FF1744" if vote.signal == SignalType.SELL else "#FFD600"
-                    st.markdown(f"""
-                        <div style="border-left: 3px solid {signal_color}; padding: 10px; margin: 10px 0; background: #0A0A0A;">
-                            <strong style="color: {signal_color};">VOTE: {vote.signal.value}</strong>
-                            <span style="color: #666;"> | Conviction: {vote.conviction.value}/10</span>
-                            <p style="margin: 10px 0; color: #CCC;">{vote.rationale}</p>
-                            <small style="color: #888;">Risk Note: {vote.risk_assessment}</small>
-                        </div>
-                    """, unsafe_allow_html=True)
-            
-            progress.empty()
+        st.markdown("### 📊 GOVERNOR DELIBERATIONS")
         
-        # Phase 3: Chairman's Deliberation
+        progress = st.progress(0)
+        governors_list = list(self.governors.items())
+        
+        for idx, (gov_id, gov_info) in enumerate(governors_list):
+            if gov_id == "CHAIRMAN_OSINACHI":
+                continue
+            
+            progress.progress((idx + 1) / len(governors_list))
+            
+            with st.expander(f"🎓 **{gov_info['title']}** - {gov_info['role']}", expanded=(idx < 2)):
+                vote = self._get_governor_vote(gov_id, gov_info, asset, directive, market_data)
+                governor_votes.append(vote)
+                
+                signal_color = "#00C853" if vote.signal == SignalType.BUY else "#FF1744" if vote.signal == SignalType.SELL else "#FFD600"
+                
+                vote_html = f"""
+                    <div style="border-left: 3px solid {signal_color}; padding: 10px; margin: 10px 0; background: #0A0A0A;">
+                        <strong style="color: {signal_color};">VOTE: {vote.signal.value}</strong>
+                        <span style="color: #666;"> | Conviction: {vote.conviction.value}/10</span>
+                        <p style="margin: 10px 0; color: #CCC;">{vote.rationale}</p>
+                        <small style="color: #888;">Risk Note: {vote.risk_assessment}</small>
+                    </div>
+                """
+                st.markdown(vote_html, unsafe_allow_html=True)
+        
+        progress.empty()
+        
         st.markdown("---")
         st.markdown("### 👑 CHAIRMAN OSINACHI - FINAL VERDICT")
         
         with st.spinner("Chairman synthesizing all analysis..."):
             final_directive = self._chairman_verdict(
-                directive_id, asset, directive, market_data, 
-                governor_votes, intel
+                directive_id, asset, directive, market_data, governor_votes
             )
         
-        # Store in history
         self.vote_history.append(final_directive)
         
         return final_directive
     
-    def _gather_intelligence(self, asset: str, market_data: Dict) -> Dict:
-        """Gather institutional-grade intelligence"""
-        
-        intel_prompt = f"""
-        You are the Director of Intelligence at Sovereign Fund Capital.
-        You have access to non-public information flows including:
-        - Dark pool prints and block trade data
-        - CME Commitment of Traders reports
-        - Prime brokerage flow data
-        - Central bank activity monitoring
-        - Sovereign wealth fund movements
-        
-        Asset: {asset}
-        Market Data: {json.dumps(market_data, indent=2)}
-        
-        Provide intelligence briefing:
-        1. Institutional positioning (3 bullets)
-        2. Unusual activity detected (2 bullets)
-        3. Smart money consensus
-        4. Risk flags
-        
-        Be specific and quantitative.
-        """
-        
-        try:
-            if self.model:
-                response = self.model.generate_content(intel_prompt)
-                return {'raw_intel': response.text, 'source': 'AI_ANALYSIS'}
-        except:
-            pass
-        
-        return {'raw_intel': 'Intelligence gathering in progress...', 'source': 'SYNTHETIC'}
-    
     def _get_governor_vote(self, gov_id: str, gov_info: Dict, asset: str, 
-                           directive: str, market_data: Dict, intel: Dict) -> BoardVote:
-        """Get individual governor's vote"""
+                           directive: str, market_data: Dict) -> BoardVote:
         
         prompt = f"""
         You are {gov_info['title']} at Sovereign Fund Capital.
         
         BACKGROUND: {gov_info['background']}
         EXPERTISE: {gov_info['expertise']}
-        PERSONALITY: {gov_info['personality']}
         
         You are voting on: {directive}
         Asset: {asset}
@@ -807,10 +627,7 @@ class SovereignBoardOfGovernors:
         MARKET DATA:
         {json.dumps(market_data, indent=2)}
         
-        INTELLIGENCE BRIEFING:
-        {intel.get('raw_intel', 'Classified')}
-        
-        Provide your analysis and vote. Format:
+        Provide your analysis and vote. Format exactly:
         VOTE: [BUY/SELL/HOLD]
         CONVICTION: [1-10]
         RATIONALE: [2-3 sentences from your expertise perspective]
@@ -823,7 +640,6 @@ class SovereignBoardOfGovernors:
                 response = self.model.generate_content(prompt)
                 text = response.text
                 
-                # Parse response
                 vote_signal = self._extract_signal(text)
                 conviction = self._extract_conviction(text)
                 rationale = self._extract_field(text, 'RATIONALE')
@@ -843,35 +659,27 @@ class SovereignBoardOfGovernors:
         except Exception as e:
             pass
         
-        # Fallback vote based on market data
         return self._fallback_vote(gov_id, gov_info, market_data)
     
     def _chairman_verdict(self, directive_id: str, asset: str, directive: str,
-                          market_data: Dict, votes: List[BoardVote], intel: Dict) -> BoardDirective:
-        """Chairman Osinachi's final decision"""
+                          market_data: Dict, votes: List[BoardVote]) -> BoardDirective:
         
-        # Count votes
         buy_votes = sum(1 for v in votes if v.signal == SignalType.BUY)
         sell_votes = sum(1 for v in votes if v.signal == SignalType.SELL)
         hold_votes = sum(1 for v in votes if v.signal == SignalType.HOLD)
-        
-        # Average conviction
         avg_conviction = np.mean([v.conviction.value for v in votes]) if votes else 5
         
         prompt = f"""
-        You are CHAIRMAN OSINACHI, Chief Investment Officer of Sovereign Fund Capital.
+        You are CHAIRMAN OSINACHI, CIO of Sovereign Fund Capital.
         
         CREDENTIALS:
         - Former Federal Reserve Governor (12 years)
         - PhD Economics, MIT
         - 30 years institutional investment experience
         - Managed $50B+ institutional portfolios
-        - Successfully navigated: 2008 Crisis, 2020 Crash, 2022 Bear Market
         
         BOARD VOTE TALLY:
-        - BUY Votes: {buy_votes}
-        - SELL Votes: {sell_votes}
-        - HOLD Votes: {hold_votes}
+        - BUY: {buy_votes}, SELL: {sell_votes}, HOLD: {hold_votes}
         - Average Conviction: {avg_conviction:.1f}/10
         
         ASSET: {asset}
@@ -880,17 +688,12 @@ class SovereignBoardOfGovernors:
         MARKET DATA:
         {json.dumps(market_data, indent=2)}
         
-        INDIVIDUAL VOTES:
+        VOTES:
         {json.dumps([{'role': v.governor_role, 'vote': v.signal.value, 'conviction': v.conviction.value, 'rationale': v.rationale[:100]} for v in votes], indent=2)}
         
-        As Chairman, you must now make the FINAL DECISION that will be executed with REAL capital.
-        
-        Your decision must consider:
-        1. Current AUM: DNA Fund $4,995 | Sure Leverage $4,968
-        2. Objective: Grow to multi-billion dollar fund
-        3. Maximum risk: 1% per trade
-        4. The weight of board evidence
-        5. Your own institutional experience
+        Current AUM: DNA Fund $4,995 | Sure Leverage $4,968
+        Objective: Grow to multi-billion dollar fund
+        Maximum risk: 1% per trade
         
         DELIVER YOUR FINAL VERDICT:
         SIGNAL: [BUY/SELL/HOLD]
@@ -911,11 +714,11 @@ class SovereignBoardOfGovernors:
                 response = self.model.generate_content(prompt)
                 text = response.text
                 
-                # Parse chairman's decision
                 signal = self._extract_signal(text)
                 conviction = self._extract_conviction(text)
-                entry_low = self._extract_float(text, 'ENTRY_ZONE_LOW', market_data.get('price', 0) * 0.99)
-                entry_high = self._extract_float(text, 'ENTRY_ZONE_HIGH', market_data.get('price', 0) * 1.01)
+                price = market_data.get('price', 0)
+                entry_low = self._extract_float(text, 'ENTRY_ZONE_LOW', price * 0.99)
+                entry_high = self._extract_float(text, 'ENTRY_ZONE_HIGH', price * 1.01)
                 stop_loss = self._extract_float(text, 'STOP_LOSS', entry_low * 0.98)
                 target_1 = self._extract_float(text, 'TARGET_1', entry_high * 1.02)
                 target_2 = self._extract_float(text, 'TARGET_2', entry_high * 1.04)
@@ -948,7 +751,6 @@ class SovereignBoardOfGovernors:
         except Exception as e:
             pass
         
-        # Fallback - conservative hold
         return self._conservative_directive(directive_id, asset, votes)
     
     def _extract_signal(self, text: str) -> SignalType:
@@ -995,7 +797,6 @@ class SovereignBoardOfGovernors:
         return TimeFrame.SWING
     
     def _fallback_vote(self, gov_id: str, gov_info: Dict, data: Dict) -> BoardVote:
-        """Generate fallback vote based on technical analysis"""
         rsi = data.get('rsi_14', 50)
         trend = data.get('price_structure', 'CONSOLIDATION')
         sentiment = 0
@@ -1029,7 +830,6 @@ class SovereignBoardOfGovernors:
     
     def _conservative_directive(self, directive_id: str, asset: str, 
                                 votes: List[BoardVote]) -> BoardDirective:
-        """Conservative fallback directive"""
         return BoardDirective(
             directive_id=directive_id,
             asset=asset,
@@ -1057,8 +857,6 @@ class SovereignBoardOfGovernors:
 # ============================================
 
 class InstitutionalSetupScanner:
-    """Autonomous scanner for high-probability institutional setups"""
-    
     def __init__(self):
         self.data_engine = InstitutionalDataEngine()
         self.scan_universe = {
@@ -1084,7 +882,6 @@ class InstitutionalSetupScanner:
         }
     
     def scan_all_markets(self) -> List[Dict]:
-        """Scan all markets for high-probability setups"""
         all_setups = []
         
         progress = st.progress(0)
@@ -1115,41 +912,34 @@ class InstitutionalSetupScanner:
         return all_setups[:5]
     
     def _calculate_probability_score(self, data: Dict) -> float:
-        """Multi-factor probability scoring"""
         score = 50
         
-        # Trend alignment
         if data['price_structure'] == 'BULLISH_STRUCTURE':
             score += 15
         elif data['price_structure'] == 'BEARISH_STRUCTURE':
             score += 10
         
-        # RSI optimal zone
         rsi = data['rsi_14']
         if 40 <= rsi <= 60:
             score += 10
         elif 30 <= rsi <= 70:
             score += 5
         
-        # Volume confirmation
         if data['volume_ratio'] > 1.5:
             score += 15
         
-        # MACD confirmation
         if data['macd_histogram'] > 0 and 'BULLISH' in data['price_structure']:
             score += 10
         elif data['macd_histogram'] < 0 and 'BEARISH' in data['price_structure']:
             score += 10
         
-        # ATR range
-        atr_pct = data['atr_14'] / data['price'] * 100
+        atr_pct = data['atr_14'] / data['price'] * 100 if data['price'] > 0 else 0
         if 1 < atr_pct < 3:
             score += 5
         
         return min(100, score)
     
     def _determine_direction(self, data: Dict) -> str:
-        """Determine optimal trade direction"""
         if data['price_structure'] == 'BULLISH_STRUCTURE' and data['rsi_14'] < 60:
             return 'LONG'
         elif data['price_structure'] == 'BEARISH_STRUCTURE' and data['rsi_14'] > 40:
@@ -1161,9 +951,6 @@ class InstitutionalSetupScanner:
 # ============================================
 
 def main():
-    """Sovereign Fund Capital - Main Application"""
-    
-    # Initialize session state
     if 'data_engine' not in st.session_state:
         st.session_state.data_engine = InstitutionalDataEngine()
     if 'board' not in st.session_state:
@@ -1175,7 +962,6 @@ def main():
     if 'scan_results' not in st.session_state:
         st.session_state.scan_results = []
     
-    # Check API key
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         st.error("🔴 GOOGLE_API_KEY not configured!")
@@ -1185,7 +971,7 @@ def main():
     genai.configure(api_key=api_key)
     
     # ============================================
-    # SIDEBAR - COMMAND CENTER
+    # SIDEBAR
     # ============================================
     with st.sidebar:
         st.markdown("""
@@ -1198,9 +984,7 @@ def main():
         
         st.divider()
         
-        # AUM Display
         st.markdown("### 💰 ASSETS UNDER MANAGEMENT")
-        
         col1, col2 = st.columns(2)
         col1.metric("DNA Fund", "$4,995", "🔒")
         col2.metric("Sure Leverage", "$4,968", "🔒")
@@ -1208,7 +992,6 @@ def main():
         
         st.divider()
         
-        # Navigation
         st.markdown("### 📋 DIRECTIVES")
         page = st.radio(
             "Select Command",
@@ -1218,7 +1001,6 @@ def main():
         
         st.divider()
         
-        # Market Status
         ny_time = datetime.now(pytz.timezone('America/New_York'))
         st.markdown(f"""
             <div style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:#666;">
@@ -1231,7 +1013,7 @@ def main():
     # ============================================
     # HEADER
     # ============================================
-    st.markdown("">
+    st.markdown("""
         <h1 class="institutional-header">SOVEREIGN FUND CAPITAL</h1>
         <p style="text-align:center; color:#888; font-size:0.8rem; letter-spacing:2px;">
             INSTITUTIONAL AI BOARD OF GOVERNORS | PRIVATE HEDGE FUND
@@ -1253,12 +1035,9 @@ def main():
         render_portfolio()
 
 def render_board_room():
-    """Institutional Board Room"""
-    
     st.markdown("### 🏛️ BOARD OF GOVERNORS")
     st.markdown("*Federal Reserve Model - Seven Specialized Governors + Chairman Osinachi*")
     
-    # Display board members
     board = st.session_state.board
     cols = st.columns(4)
     
@@ -1266,25 +1045,28 @@ def render_board_room():
         with cols[i % 4]:
             is_chairman = gov_id == "CHAIRMAN_OSINACHI"
             border = "2px solid #C8A84E" if is_chairman else "1px solid #222"
+            bg_color = "#C8A84E" if is_chairman else "#444"
+            weight_pct = gov['weight'] * 100
+            role_prefix = "👑 " if is_chairman else ""
+            expertise_short = gov['expertise'][:50]
+            font_size = "1rem" if is_chairman else "0.9rem"
             
-            st.markdown(f"""
-                <div class="governor-card {'chairman' if is_chairman else ''}" 
-                     style="border: {border}; margin: 5px 0; padding: 15px;">
-                    <div class="governor-role">{'👑 ' if is_chairman else ''}{gov['title']}</div>
+            card_html = f"""
+                <div class="governor-card" style="border: {border}; margin: 5px 0; padding: 15px;">
+                    <div class="governor-role" style="font-size: {font_size};">{role_prefix}{gov['title']}</div>
                     <div class="governor-name">{gov['role']}</div>
-                    <div style="font-size:0.65rem; color:#555; margin-top:8px;">{gov['expertise'][:50]}...</div>
+                    <div style="font-size:0.65rem; color:#555; margin-top:8px;">{expertise_short}...</div>
                     <div style="margin-top:8px;">
                         <div style="background:#1A1A1A; height:2px;">
-                            <div style="background:{'#C8A84E' if is_chairman else '#444'}; 
-                                        width:{gov['weight']*100}%; height:100%;"></div>
+                            <div style="background:{bg_color}; width:{weight_pct}%; height:100%;"></div>
                         </div>
                     </div>
                 </div>
-            """, unsafe_allow_html=True)
+            """
+            st.markdown(card_html, unsafe_allow_html=True)
     
     st.divider()
     
-    # Directive input
     st.markdown("### 📋 SUBMIT DIRECTIVE TO BOARD")
     
     col1, col2 = st.columns([3, 1])
@@ -1322,7 +1104,6 @@ def render_board_room():
     
     if st.button("🏛️ CONVENE FULL BOARD", use_container_width=True, type="primary"):
         if directive_text:
-            # Map asset to symbol
             symbol_map = {
                 "XAUUSD (Gold)": "GC=F",
                 "BTCUSD (Bitcoin)": "BTC-USD",
@@ -1334,21 +1115,17 @@ def render_board_room():
             
             symbol = symbol_map.get(asset_select, "GC=F")
             
-            # Fetch market data
             with st.spinner("📡 Fetching institutional data..."):
                 market_data = st.session_state.data_engine.fetch_institutional_data(symbol)
             
             if market_data:
-                # Convene board
                 directive = st.session_state.board.convene_board(
                     asset_select, directive_text, market_data
                 )
                 
-                # Display final directive
                 st.divider()
                 display_board_directive(directive)
                 
-                # Store
                 st.session_state.active_directives.append(directive)
             else:
                 st.error("Unable to fetch market data. Check symbol or try again.")
@@ -1356,16 +1133,12 @@ def render_board_room():
             st.error("Please enter a directive for the Board.")
 
 def render_trading_terminal():
-    """Trading Terminal"""
-    
     st.markdown("### 🎯 EXECUTION TERMINAL")
     
-    # Quick scan
     if st.button("🔍 AUTO-SCAN FOR HIGH PROBABILITY SETUPS", use_container_width=True):
         with st.spinner("Scanning institutional order flow..."):
             st.session_state.scan_results = st.session_state.scanner.scan_all_markets()
     
-    # Display scan results
     if st.session_state.scan_results:
         st.success(f"Found {len(st.session_state.scan_results)} high-probability setups")
         
@@ -1387,7 +1160,6 @@ def render_trading_terminal():
     
     st.divider()
     
-    # Manual entry
     st.markdown("### 📋 Manual Position Entry")
     
     col1, col2 = st.columns(2)
@@ -1408,7 +1180,7 @@ def render_trading_terminal():
         risk = st.slider("Risk % of AUM", 0.1, 1.0, 0.5, 0.1)
         
         if entry > 0 and stop > 0:
-            total_aum = 9963  # Current total AUM
+            total_aum = 9963
             risk_amount = total_aum * (risk / 100)
             pos_size = risk_amount / abs(entry - stop)
             
@@ -1437,8 +1209,6 @@ def render_trading_terminal():
                     st.session_state.active_directives.append(directive)
 
 def render_market_scanner():
-    """Market Scanner"""
-    
     st.markdown("### 🔍 INSTITUTIONAL SETUP SCANNER")
     st.markdown("*Autonomous detection of high-probability institutional trading opportunities*")
     
@@ -1462,11 +1232,10 @@ def render_market_scanner():
                 col3.metric("RSI", f"{data['rsi_14']:.1f}")
                 col4.metric("Volume", data['volume_trend'])
                 
+                sr = data['support_resistance']
                 st.markdown(f"""
-                    **Support Levels:** S1: ${data['support_resistance']['support_1']} | 
-                    S2: ${data['support_resistance']['support_2']}
-                    **Resistance Levels:** R1: ${data['support_resistance']['resistance_1']} | 
-                    R2: ${data['support_resistance']['resistance_2']}
+                    **Support:** S1: ${sr['support_1']} | S2: ${sr['support_2']}
+                    **Resistance:** R1: ${sr['resistance_1']} | R2: ${sr['resistance_2']}
                     **ATR:** ${data['atr_14']:.2f} | **Volatility:** {data['volatility_30d']}%
                 """)
                 
@@ -1475,11 +1244,8 @@ def render_market_scanner():
                     st.success("Switching to Board Room...")
 
 def render_portfolio():
-    """Portfolio Overview"""
-    
     st.markdown("### 📊 SOVEREIGN PORTFOLIO")
     
-    # Current positions
     st.markdown("#### Active Positions")
     
     if st.session_state.active_directives:
@@ -1496,7 +1262,6 @@ def render_portfolio():
     
     st.divider()
     
-    # Performance metrics
     st.markdown("#### Fund Performance")
     
     col1, col2, col3, col4 = st.columns(4)
@@ -1518,11 +1283,9 @@ def render_portfolio():
     """, unsafe_allow_html=True)
 
 def display_board_directive(directive: BoardDirective):
-    """Display board directive in institutional format"""
-    
     signal_color = "#00C853" if directive.signal == SignalType.BUY else "#FF1744" if directive.signal == SignalType.SELL else "#FFD600"
     
-    st.markdown(f"""
+    directive_html = f"""
         <div class="board-directive">
             <div class="classified-stamp">CLASSIFIED</div>
             
@@ -1574,7 +1337,8 @@ def display_board_directive(directive: BoardDirective):
                 <strong>Expiry:</strong> {directive.expiry}
             </div>
         </div>
-    """, unsafe_allow_html=True)
+    """
+    st.markdown(directive_html, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
